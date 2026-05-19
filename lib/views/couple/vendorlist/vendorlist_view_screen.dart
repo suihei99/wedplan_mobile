@@ -92,6 +92,52 @@ class VendorListViewScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 18),
+                    if (service.hasVendorDetails) ...[
+                      Text(
+                        'Vendor information',
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _InfoTile(
+                        label: 'Business name',
+                        value: service.vendorBusinessName,
+                        icon: Icons.storefront_rounded,
+                      ),
+                      const SizedBox(height: 12),
+                      _InfoTile(
+                        label: 'Contact number',
+                        value: service.vendorContactNumber,
+                        icon: Icons.phone_rounded,
+                      ),
+                      const SizedBox(height: 12),
+                      _InfoTile(
+                        label: 'Email',
+                        value: service.vendorEmail,
+                        icon: Icons.email_rounded,
+                      ),
+                      const SizedBox(height: 18),
+                    ],
+                    if (service.bookingDates.isNotEmpty) ...[
+                      Text(
+                        'Booking dates',
+                        style: GoogleFonts.manrope(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: service.bookingDates
+                            .map((date) => _MetaChip(label: date))
+                            .toList(),
+                      ),
+                      const SizedBox(height: 18),
+                    ],
                     _InfoTile(
                       label: 'Estimated price',
                       value: service.priceLabel,

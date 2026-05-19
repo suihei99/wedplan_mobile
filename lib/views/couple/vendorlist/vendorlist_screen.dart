@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:wedplan_mobile/models/vendor/vendor_service.dart';
 import 'package:wedplan_mobile/viewmodels/vendor/vendor_service_view_model.dart';
@@ -401,7 +402,7 @@ class _ServiceCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -414,85 +415,122 @@ class _ServiceCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                width: 88,
-                height: 88,
-                color: const Color(0xFFFCE0E5),
-                child: service.hasImage
-                    ? CachedNetworkImage(
-                        imageUrl: service.resolvedImageUrl,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 1.16,
+                  child: service.hasImage
+                      ? CachedNetworkImage(
+                          imageUrl: service.resolvedImageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: const Color(0xFFF8EEF0),
+                            alignment: Alignment.center,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: const Color(0xFFF8EEF0),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.storefront_rounded,
+                              color: welcomePrimaryDeepColor,
+                              size: 38,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: const Color(0xFFF8EEF0),
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.storefront_rounded,
+                            color: welcomePrimaryDeepColor,
+                            size: 38,
+                          ),
                         ),
-                        errorWidget: (context, url, error) => const Icon(
-                          Icons.storefront_rounded,
-                          color: welcomePrimaryDeepColor,
-                          size: 34,
-                        ),
-                      )
-                    : const Icon(
-                        Icons.storefront_rounded,
-                        color: welcomePrimaryDeepColor,
-                        size: 34,
-                      ),
-              ),
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: _Pill(label: service.serviceTypeLabel),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    service.serviceName,
+                    style: GoogleFonts.manrope(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    service.vendorBusinessName.isNotEmpty
+                        ? service.vendorBusinessName
+                        : 'Verified vendor',
+                    style: GoogleFonts.manrope(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF7C6B71),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  if (service.vendorAddress.isNotEmpty)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          color: welcomePrimaryDeepColor,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            service.vendorAddress,
+                            style: GoogleFonts.manrope(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF7C6B71),
+                              height: 1.35,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 14),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
-                          service.serviceName,
+                          '${service.priceLabel} / Package',
                           style: GoogleFonts.manrope(
-                            fontSize: 16,
+                            fontSize: 15,
                             fontWeight: FontWeight.w900,
+                            color: welcomePrimaryDeepColor,
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        service.priceLabel,
-                        style: GoogleFonts.manrope(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          color: welcomePrimaryDeepColor,
-                        ),
-                      ),
+                      const SizedBox(width: 10),
+                      _WhatsAppButton(phoneNumber: service.vendorContactNumber),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _Pill(label: service.serviceTypeLabel),
-                      _Pill(label: 'Tap to view details'),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    service.descriptionLabel,
-                    style: GoogleFonts.manrope(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF7C6B71),
-                      height: 1.45,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -627,6 +665,47 @@ class _Pill extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w800,
           color: const Color(0xFF7C6B71),
+        ),
+      ),
+    );
+  }
+}
+
+class _WhatsAppButton extends StatelessWidget {
+  const _WhatsAppButton({required this.phoneNumber});
+
+  final String phoneNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPhone = phoneNumber.trim().isNotEmpty;
+
+    return SizedBox(
+      height: 40,
+      child: FilledButton(
+        onPressed: hasPhone
+            ? () async {
+                final digits = phoneNumber.replaceAll(RegExp(r'[^0-9+]'), '');
+                final phone = digits.startsWith('+')
+                    ? digits.substring(1)
+                    : digits;
+                final uri = Uri.parse('https://wa.me/$phone');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              }
+            : null,
+        style: FilledButton.styleFrom(
+          backgroundColor: welcomePrimaryColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Text(
+          'WhatsApp',
+          style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w800),
         ),
       ),
     );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
@@ -58,7 +60,10 @@ class VendorServiceViewModel extends ChangeNotifier {
     _error = null;
 
     try {
-      _services = await _repository.fetchServices();
+      _services = await _repository.fetchServices(
+        search: _query,
+        typeService: _selectedType,
+      );
       if (_selectedType != 'all' &&
           !_services.any(
             (service) =>
@@ -80,12 +85,14 @@ class VendorServiceViewModel extends ChangeNotifier {
   void setQuery(String value) {
     if (_query == value) return;
     _query = value;
+    unawaited(load(forceRefresh: true));
     notifyListeners();
   }
 
   void setTypeFilter(String value) {
     if (_selectedType == value) return;
     _selectedType = value;
+    unawaited(load(forceRefresh: true));
     notifyListeners();
   }
 
@@ -93,6 +100,7 @@ class VendorServiceViewModel extends ChangeNotifier {
     if (_query.isEmpty && _selectedType == 'all') return;
     _query = '';
     _selectedType = 'all';
+    unawaited(load(forceRefresh: true));
     notifyListeners();
   }
 

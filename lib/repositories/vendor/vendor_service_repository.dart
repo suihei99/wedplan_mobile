@@ -9,13 +9,26 @@ class VendorServiceRepository {
 
   final ApiService _apiService;
 
-  Future<List<VendorService>> fetchServices() async {
-    final response = await _apiService.vendorServices();
+  Future<List<VendorService>> fetchServices({
+    String? search,
+    String? typeService,
+    int perPage = 100,
+  }) async {
+    final response = await _apiService.coupleVendorServices(
+      queryParameters: <String, dynamic>{
+        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        if (typeService != null &&
+            typeService.trim().isNotEmpty &&
+            typeService.trim().toLowerCase() != 'all')
+          'type_service': typeService.trim(),
+        'per_page': perPage,
+      },
+    );
     return _parseServices(response.data);
   }
 
   Future<VendorService?> showService(Object id) async {
-    final response = await _apiService.vendorServiceShow(id);
+    final response = await _apiService.coupleVendorServiceShow(id);
     final map = _toMap(response.data);
     if (map.isEmpty) return null;
     return VendorService.fromJson(map);
@@ -23,9 +36,24 @@ class VendorServiceRepository {
 
   List<VendorService> _parseServices(dynamic data) {
     final map = _toMap(data);
-    final list = _readList(map, const ['data', 'services']);
 
-    return list
+    // Try to read common list wrappers: top-level 'data' or 'services'.
+    var list = _readList(map, const ['data', 'services']);
+
+    // Some APIs wrap the response as { data: { current_page: ..., data: [ ... ] } }
+    // In that case, the first 'data' is a Map which itself contains the real list
+    // under its 'data' key. Detect and unwrap that structure.
+    if (list.isEmpty) {
+      final inner = map['data'];
+      if (inner is Map) {
+        final innerMap = _toMap(inner);
+        list = _readList(innerMap, const ['data', 'services']);
+      }
+    }
+
+    final items = list;
+
+    return items
         .whereType<Map>()
         .map((item) => VendorService.fromJson(item.cast<String, dynamic>()))
         .toList();

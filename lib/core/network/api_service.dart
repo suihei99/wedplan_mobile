@@ -194,6 +194,19 @@ class ApiService {
     return get<dynamic>(ApiRouter.coupleDashboard);
   }
 
+  Future<Response<dynamic>> coupleVendorServices({
+    Map<String, dynamic>? queryParameters,
+  }) {
+    return get<dynamic>(
+      ApiRouter.coupleVendors,
+      queryParameters: queryParameters,
+    );
+  }
+
+  Future<Response<dynamic>> coupleVendorServiceShow(Object id) {
+    return get<dynamic>(ApiRouter.coupleVendorById(id));
+  }
+
   Future<Response<dynamic>> budgets() {
     return get<dynamic>(ApiRouter.budget);
   }

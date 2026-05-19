@@ -8,6 +8,12 @@ class VendorService {
     required this.priceEstimate,
     required this.description,
     required this.imageUrl,
+    required this.imageUrlResolved,
+    required this.vendorBusinessName,
+    required this.vendorAddress,
+    required this.vendorContactNumber,
+    required this.vendorEmail,
+    required this.bookingDates,
     required this.raw,
   });
 
@@ -17,6 +23,12 @@ class VendorService {
   final double priceEstimate;
   final String description;
   final String imageUrl;
+  final String imageUrlResolved;
+  final String vendorBusinessName;
+  final String vendorAddress;
+  final String vendorContactNumber;
+  final String vendorEmail;
+  final List<String> bookingDates;
   final Map<String, dynamic> raw;
 
   bool get hasImage => imageUrl.trim().isNotEmpty;
@@ -29,36 +41,69 @@ class VendorService {
       ? description.trim()
       : 'No description provided by the vendor yet.';
 
-  String get resolvedImageUrl => _resolveImageUrl(imageUrl);
+  String get resolvedImageUrl => imageUrlResolved.trim().isNotEmpty
+      ? imageUrlResolved.trim()
+      : _resolveImageUrl(imageUrl);
+
+  bool get hasVendorDetails =>
+      vendorBusinessName.trim().isNotEmpty ||
+      vendorContactNumber.trim().isNotEmpty ||
+      vendorEmail.trim().isNotEmpty;
 
   factory VendorService.fromJson(Map<String, dynamic> json) {
     final data = _unwrap(json);
+    final vendor = _readMap(data, ['vendor', 'user']);
+    final serviceData = _readMap(data, ['service']);
+    final source = serviceData.isNotEmpty ? serviceData : data;
     return VendorService(
-      id: data['id'] ?? data['service_id'],
+      id:
+          source['id'] ??
+          source['service_id'] ??
+          data['id'] ??
+          data['service_id'],
       serviceName: _firstString([
-        data['service_name'],
-        data['name'],
-        data['title'],
+        source['service_name'],
+        source['name'],
+        source['title'],
       ], fallback: 'Service'),
       typeService: _firstString([
-        data['type_service'],
-        data['service_type'],
-        data['category'],
+        source['type_service'],
+        source['service_type'],
+        source['category'],
       ]),
       priceEstimate: _firstDouble([
-        data['price_estimate'],
-        data['price'],
-        data['starting_price'],
+        source['price_estimate'],
+        source['price'],
+        source['starting_price'],
       ]),
       description: _firstString([
-        data['description'],
-        data['summary'],
-        data['details'],
+        source['description'],
+        source['summary'],
+        source['details'],
       ]),
       imageUrl: _firstString([
-        data['image_url'],
-        data['image'],
-        data['photo_url'],
+        source['image_url'],
+        source['image'],
+        source['photo_url'],
+      ]),
+      imageUrlResolved: _firstString([
+        source['image_url_resolved'],
+        data['image_url_resolved'],
+      ]),
+      vendorBusinessName: _firstString([
+        vendor['business_name'],
+        vendor['company_name'],
+        data['business_name'],
+      ]),
+      vendorAddress: _firstString([vendor['address'], data['address']]),
+      vendorContactNumber: _firstString([
+        vendor['contact_number'],
+        data['contact_number'],
+      ]),
+      vendorEmail: _firstString([vendor['email'], data['email']]),
+      bookingDates: _readStringList(data, const [
+        'booking_dates',
+        'bookingDates',
       ]),
       raw: json,
     );
@@ -74,6 +119,33 @@ Map<String, dynamic> _unwrap(Map<String, dynamic> source) {
     );
   }
   return source;
+}
+
+Map<String, dynamic> _readMap(Map<String, dynamic> source, List<String> keys) {
+  for (final key in keys) {
+    final value = source[key];
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map<String, dynamic>(
+        (mapKey, mapValue) => MapEntry(mapKey.toString(), mapValue),
+      );
+    }
+  }
+  return <String, dynamic>{};
+}
+
+List<String> _readStringList(Map<String, dynamic> source, List<String> keys) {
+  for (final key in keys) {
+    final value = source[key];
+    if (value is List) {
+      return value
+          .where((item) => item != null)
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+  }
+  return const <String>[];
 }
 
 String _firstString(Iterable<dynamic> values, {String fallback = ''}) {

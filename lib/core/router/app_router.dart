@@ -37,6 +37,8 @@ class ApiRouter {
 
   static const String couplePrefix = '/couple';
   static const String coupleDashboard = '$couplePrefix/dashboard';
+  static const String coupleVendors = '$couplePrefix/vendors';
+  static String coupleVendorById(Object id) => '$coupleVendors/$id';
 
   static const String budget = '$couplePrefix/budget';
   static String budgetById(Object id) => '$budget/$id';
