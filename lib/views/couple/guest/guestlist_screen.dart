@@ -128,15 +128,15 @@ class _GuestListScreenState extends State<GuestListScreen> {
             ),
           ],
         ),
-        // actions: [
-        //   Padding(
-        //     padding: const EdgeInsets.only(right: 12),
-        //     child: IconButton(
-        //       onPressed: () => _refresh(context),
-        //       icon: const Icon(Icons.refresh_rounded),
-        //     ),
-        //   ),
-        // ],
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              onPressed: () => _refresh(context),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(child: content),
       bottomNavigationBar: CoupleNavbar(
