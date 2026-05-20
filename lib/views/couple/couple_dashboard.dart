@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:wedplan_mobile/viewmodels/couple/couple_dashboard_view_model.dart';
 import 'package:wedplan_mobile/views/couple/budget/budget_screen.dart';
 import 'package:wedplan_mobile/views/couple/vendorlist/vendorlist_screen.dart';
+import 'package:wedplan_mobile/views/couple/guest/guestlist_screen.dart';
 import 'package:wedplan_mobile/views/couple/navbar/navbar.dart';
 import 'package:wedplan_mobile/views/couple/widgets/dashboard_cards.dart';
 
@@ -47,11 +48,9 @@ class _CoupleDashboardScreenState extends State<CoupleDashboardScreen> {
             ),
             BudgetScreen(embedded: true),
             const VendorListScreen(embedded: true),
-            _ComingSoonPage(
-              title: 'Guests',
-              subtitle:
-                  'This tab can host RSVP, guest list, and check-in next.',
-            ),
+            // Embed the guestlist screen here so the CoupleNavbar 'Guest' tab
+            // shows the real guest listing instead of the placeholder.
+            const GuestListScreen(embedded: true),
             _ComingSoonPage(
               title: 'Me',
               subtitle:

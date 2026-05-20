@@ -52,7 +52,9 @@ class VendorService {
 
   factory VendorService.fromJson(Map<String, dynamic> json) {
     final data = _unwrap(json);
-    final vendor = _readMap(data, ['vendor', 'user']);
+    final user = _readMap(data, ['user']);
+    final vendor = _readMap(data, ['vendor']);
+    final nestedVendor = _readMap(user, ['vendor']);
     final serviceData = _readMap(data, ['service']);
     final source = serviceData.isNotEmpty ? serviceData : data;
     return VendorService(
@@ -92,15 +94,26 @@ class VendorService {
       ]),
       vendorBusinessName: _firstString([
         vendor['business_name'],
+        nestedVendor['business_name'],
         vendor['company_name'],
+        nestedVendor['company_name'],
         data['business_name'],
       ]),
-      vendorAddress: _firstString([vendor['address'], data['address']]),
+      vendorAddress: _firstString([
+        vendor['address'],
+        nestedVendor['address'],
+        data['address'],
+      ]),
       vendorContactNumber: _firstString([
         vendor['contact_number'],
+        nestedVendor['contact_number'],
         data['contact_number'],
       ]),
-      vendorEmail: _firstString([vendor['email'], data['email']]),
+      vendorEmail: _firstString([
+        user['email'],
+        vendor['email'],
+        data['email'],
+      ]),
       bookingDates: _readStringList(data, const [
         'booking_dates',
         'bookingDates',
