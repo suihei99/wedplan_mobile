@@ -97,9 +97,15 @@ class _MeScreenState extends State<MeScreen> {
   }
 
   void _openAiBudget(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const AiBudgetScreen()));
+    final vm = context.read<MeViewModel>();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: vm,
+          child: const AiBudgetScreen(),
+        ),
+      ),
+    );
   }
 
   void _openProfile(BuildContext context, MeViewModel vm) {
