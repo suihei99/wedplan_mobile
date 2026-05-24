@@ -47,10 +47,7 @@ class CoupleNotificationItem {
 }
 
 class CoupleNotificationFeed {
-  CoupleNotificationFeed({
-    required this.unreadCount,
-    required this.items,
-  });
+  CoupleNotificationFeed({required this.unreadCount, required this.items});
 
   final int unreadCount;
   final List<CoupleNotificationItem> items;

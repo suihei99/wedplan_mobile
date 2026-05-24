@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:612383174514:android:234e0cf647d8ce465c37eb",
+        "android_client_info": {
+          "package_name": "com.example.wedplan_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfG8XiCwdu--5lRb1T4Cs54IxAC5E9xMU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:612383174514:android:24f8d54ed242f2d35c37eb",
         "android_client_info": {
           "package_name": "projectse.wedplan"

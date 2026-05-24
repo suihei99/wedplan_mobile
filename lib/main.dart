@@ -1,15 +1,20 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wedplan_mobile/core/router/app_router.dart';
+import 'package:wedplan_mobile/services/push_notification_service.dart';
 import 'package:wedplan_mobile/views/welcome.dart';
 import 'package:wedplan_mobile/views/splash.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   const apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'https://wedplan.projectse.io/api/v1',
   );
   ApiRouter.configure(baseUrl: apiBaseUrl);
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  await PushNotificationService.instance.initialize();
   runApp(const MyApp());
 }
 
