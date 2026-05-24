@@ -882,7 +882,7 @@ Request body:
 }
 ```
 
-Priority values: `1` (High), `2` (Medium), `3` (Low)
+Priority values: `2` (High), `1` (Medium), `0` (Low)
 
 Successful response (201):
 

@@ -8,6 +8,7 @@ import 'package:wedplan_mobile/views/couple/guest/guestlist_add_screen.dart';
 import 'package:wedplan_mobile/views/couple/guest/guestlist_view_screen.dart';
 import 'package:wedplan_mobile/views/couple/guest/widgets/guestlist_widgets.dart';
 import 'package:wedplan_mobile/views/couple/navbar/navbar.dart';
+import 'package:wedplan_mobile/views/couple/task/task_screen.dart';
 
 class GuestListScreen extends StatefulWidget {
   const GuestListScreen({super.key, this.embedded = false});
@@ -140,11 +141,11 @@ class _GuestListScreenState extends State<GuestListScreen> {
         onTap: (index) => _handleNavTap(context, index),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openGuestEditor(context, null),
+        onPressed: () => _openTaskScreen(context),
         backgroundColor: const Color(0xFFE04F6D),
-        icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
+        icon: const Icon(Icons.checklist_rounded, color: Colors.white),
         label: Text(
-          'Add Guest',
+          'Tasklist',
           style: GoogleFonts.manrope(
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -181,6 +182,12 @@ class _GuestListScreenState extends State<GuestListScreen> {
         ),
       ),
     );
+  }
+
+  void _openTaskScreen(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const TaskScreen()));
   }
 
   void _openGuestEditor(BuildContext context, Guest? guest) {

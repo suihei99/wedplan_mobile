@@ -12,6 +12,7 @@ import 'package:wedplan_mobile/views/couple/budget/widgets/budget_category_card.
 import 'package:wedplan_mobile/views/couple/budget/widgets/budget_empty_state.dart';
 import 'package:wedplan_mobile/views/couple/budget/widgets/budget_summary_card.dart';
 import 'package:wedplan_mobile/views/couple/navbar/navbar.dart';
+import 'package:wedplan_mobile/views/couple/task/task_screen.dart';
 import 'package:wedplan_mobile/views/shared/welcome_theme.dart';
 
 enum _BudgetFilter { all, healthy, overBudget }
@@ -129,6 +130,18 @@ class _BudgetScreenState extends State<BudgetScreen> {
               currentIndex: _navIndex,
               onTap: (index) => _handleNavTap(context, index),
             ),
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () => _openTaskScreen(context),
+              backgroundColor: const Color(0xFFE04F6D),
+              icon: const Icon(Icons.checklist_rounded, color: Colors.white),
+              label: Text(
+                'Tasklist',
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           );
         },
       ),
@@ -191,6 +204,12 @@ class _BudgetScreenState extends State<BudgetScreen> {
         ),
       ),
     );
+  }
+
+  void _openTaskScreen(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const TaskScreen()));
   }
 
   void _handleNavTap(BuildContext context, int index) {

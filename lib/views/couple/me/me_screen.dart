@@ -9,6 +9,7 @@ import 'package:wedplan_mobile/views/couple/me/ai_budget/ai_budget_screen.dart';
 import 'package:wedplan_mobile/views/couple/me/setting/change_password_screen.dart';
 import 'package:wedplan_mobile/views/couple/me/setting/couple_view_screen.dart';
 import 'package:wedplan_mobile/views/couple/navbar/navbar.dart';
+import 'package:wedplan_mobile/views/couple/task/task_screen.dart';
 import 'package:wedplan_mobile/views/shared/welcome_theme.dart';
 
 class MeScreen extends StatefulWidget {
@@ -90,10 +91,28 @@ class _MeScreenState extends State<MeScreen> {
                 Navigator.of(context).maybePop();
               },
             ),
+            floatingActionButton: FloatingActionButton.extended(
+              onPressed: () => _openTaskScreen(context),
+              backgroundColor: const Color(0xFFE04F6D),
+              icon: const Icon(Icons.checklist_rounded, color: Colors.white),
+              label: Text(
+                'Tasklist',
+                style: GoogleFonts.manrope(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           );
         },
       ),
     );
+  }
+
+  void _openTaskScreen(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const TaskScreen()));
   }
 
   void _openAiBudget(BuildContext context) {

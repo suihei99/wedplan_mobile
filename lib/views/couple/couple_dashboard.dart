@@ -7,6 +7,7 @@ import 'package:wedplan_mobile/views/couple/budget/budget_screen.dart';
 import 'package:wedplan_mobile/views/couple/me/me_screen.dart';
 import 'package:wedplan_mobile/views/couple/vendorlist/vendorlist_screen.dart';
 import 'package:wedplan_mobile/views/couple/guest/guestlist_screen.dart';
+import 'package:wedplan_mobile/views/couple/task/task_screen.dart';
 import 'package:wedplan_mobile/views/couple/navbar/navbar.dart';
 import 'package:wedplan_mobile/views/couple/widgets/dashboard_cards.dart';
 
@@ -43,8 +44,8 @@ class _CoupleDashboardScreenState extends State<CoupleDashboardScreen> {
             _DashboardHome(
               vm: vm,
               onTapBudget: () => _handleNavTap(1),
-              onTapGuests: () => _openQuickAction(context, 'Guests'),
-              onTapTasks: () => _openQuickAction(context, 'Tasklist'),
+              onTapGuests: () => _handleNavTap(3),
+              onTapTasks: () => _openTaskScreen(context),
               onTapVendors: () => _handleNavTap(2),
             ),
             BudgetScreen(embedded: true),
@@ -143,9 +144,7 @@ class _CoupleDashboardScreenState extends State<CoupleDashboardScreen> {
               onTap: _handleNavTap,
             ),
             floatingActionButton: FloatingActionButton.extended(
-              onPressed: _navIndex == 0
-                  ? () => _openTaskSheet(context, vm)
-                  : null,
+              onPressed: () => _openTaskScreen(context),
               backgroundColor: const Color(0xFFE04F6D),
               icon: const Icon(Icons.checklist_rounded, color: Colors.white),
               label: Text(
@@ -188,82 +187,18 @@ class _CoupleDashboardScreenState extends State<CoupleDashboardScreen> {
     _handleNavTap(1);
   }
 
+  void _openTaskScreen(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const TaskScreen()));
+  }
+
   void _handleNavTap(int index) {
     if (_navIndex == index) {
       return;
     }
 
     setState(() => _navIndex = index);
-  }
-
-  void _openTaskSheet(BuildContext context, CoupleDashboardViewModel vm) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final dashboard = vm.dashboard;
-        final percent = dashboard?.completionPercent ?? 0;
-
-        return Container(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 44,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE5D7DB),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Tasklist',
-                style: GoogleFonts.manrope(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${percent.toStringAsFixed(0)}% complete from your dashboard summary',
-                style: GoogleFonts.manrope(fontSize: 13),
-              ),
-              const SizedBox(height: 14),
-              _TaskSheetAction(
-                icon: Icons.add_task_rounded,
-                title: 'Create task',
-                subtitle: 'Add a new wedding task or milestone',
-                onTap: () => Navigator.of(sheetContext).pop(),
-              ),
-              const SizedBox(height: 10),
-              _TaskSheetAction(
-                icon: Icons.list_alt_rounded,
-                title: 'Open task board',
-                subtitle: 'View all tasks grouped by status',
-                onTap: () => Navigator.of(sheetContext).pop(),
-              ),
-              const SizedBox(height: 10),
-              _TaskSheetAction(
-                icon: Icons.auto_awesome_rounded,
-                title: 'Smart suggestions',
-                subtitle: 'Get AI suggestions based on progress',
-                onTap: () => Navigator.of(sheetContext).pop(),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 }
 
