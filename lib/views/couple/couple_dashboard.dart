@@ -7,6 +7,7 @@ import 'package:wedplan_mobile/views/couple/budget/budget_screen.dart';
 import 'package:wedplan_mobile/views/couple/me/me_screen.dart';
 import 'package:wedplan_mobile/views/couple/vendorlist/vendorlist_screen.dart';
 import 'package:wedplan_mobile/views/couple/guest/guestlist_screen.dart';
+import 'package:wedplan_mobile/views/couple/me/notification/notification_screen.dart';
 import 'package:wedplan_mobile/views/couple/task/task_screen.dart';
 import 'package:wedplan_mobile/views/couple/navbar/navbar.dart';
 import 'package:wedplan_mobile/views/couple/widgets/dashboard_cards.dart';
@@ -162,14 +163,9 @@ class _CoupleDashboardScreenState extends State<CoupleDashboardScreen> {
   }
 
   void _showNotifications(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Notifications panel can be routed here next.',
-          style: GoogleFonts.manrope(),
-        ),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const NotificationScreen()));
   }
 
   void _openQuickAction(BuildContext context, String label) {

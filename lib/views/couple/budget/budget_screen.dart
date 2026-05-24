@@ -12,6 +12,7 @@ import 'package:wedplan_mobile/views/couple/budget/widgets/budget_category_card.
 import 'package:wedplan_mobile/views/couple/budget/widgets/budget_empty_state.dart';
 import 'package:wedplan_mobile/views/couple/budget/widgets/budget_summary_card.dart';
 import 'package:wedplan_mobile/views/couple/navbar/navbar.dart';
+import 'package:wedplan_mobile/views/couple/me/notification/notification_screen.dart';
 import 'package:wedplan_mobile/views/couple/task/task_screen.dart';
 import 'package:wedplan_mobile/views/shared/welcome_theme.dart';
 
@@ -196,14 +197,9 @@ class _BudgetScreenState extends State<BudgetScreen> {
   }
 
   void _showNotifications(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Notifications panel can be routed here next.',
-          style: GoogleFonts.manrope(),
-        ),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const NotificationScreen()));
   }
 
   void _openTaskScreen(BuildContext context) {

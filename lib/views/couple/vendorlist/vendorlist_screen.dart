@@ -7,6 +7,7 @@ import 'package:wedplan_mobile/viewmodels/vendor/vendor_service_view_model.dart'
 import 'package:wedplan_mobile/views/couple/vendorlist/widgets/vendor_list_support_widgets.dart';
 import 'package:wedplan_mobile/views/couple/vendorlist/widgets/vendor_service_grid.dart';
 import 'package:wedplan_mobile/views/couple/vendorlist/vendorlist_view_screen.dart';
+import 'package:wedplan_mobile/views/couple/me/notification/notification_screen.dart';
 import 'package:wedplan_mobile/views/shared/welcome_theme.dart';
 
 class VendorListScreen extends StatefulWidget {
@@ -95,12 +96,9 @@ class _VendorListScreenState extends State<VendorListScreen> {
                   padding: const EdgeInsets.only(right: 12),
                   child: InkResponse(
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Vendor notifications can be routed here next.',
-                            style: GoogleFonts.manrope(),
-                          ),
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const NotificationScreen(),
                         ),
                       );
                     },

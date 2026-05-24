@@ -56,9 +56,28 @@ class CoupleDashboard {
 
   double get budgetRemaining => remainingBudget;
 
+  int get unreadNotificationCount => _firstIntFromMap(raw, [
+    'unread_notifications',
+    'unread_notification_count',
+    'notifications_unread',
+  ]);
+
   DateTime? get weddingDateOnly => _parseWeddingDateOnly(
-        raw['wedding_date'] ?? raw['wedding_date_label'] ?? weddingDateLabel,
-      );
+    raw['wedding_date'] ?? raw['wedding_date_label'] ?? weddingDateLabel,
+  );
+
+  int _firstIntFromMap(Map<String, dynamic> map, List<String> keys) {
+    for (final key in keys) {
+      final value = map[key];
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) {
+        final parsed = int.tryParse(value.trim());
+        if (parsed != null) return parsed;
+      }
+    }
+    return 0;
+  }
 
   double get completionPercent {
     final fromApi = _firstDoubleFromMap(raw, [
