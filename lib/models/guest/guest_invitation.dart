@@ -49,16 +49,26 @@ class GuestInvitation {
 
   String get weddingDate => _firstNonEmpty([
     _readString(_readMap(raw, ['data', 'wedding']), 'date'),
+    // some responses provide wedding directly under a top-level 'wedding' map
+    _readString(_readMap(raw, ['wedding']), 'date'),
     _readString(raw, 'wedding_date'),
     _readString(_readMap(raw, ['data']), 'wedding_date'),
+    // also check couple-related nesting which some API shapes use
+    _readString(_readMap(raw, ['data', 'couple']), 'wedding_date'),
+    _readString(_readMap(raw, ['couple']), 'wedding_date'),
     _readString(_readMap(raw, ['event', 'wedding']), 'date'),
     _readString(_readMap(raw, ['event', 'wedding']), 'wedding_date'),
   ]);
 
   String get weddingTime => _firstNonEmpty([
     _readString(_readMap(raw, ['data', 'wedding']), 'time'),
+    // some responses provide wedding directly under a top-level 'wedding' map
+    _readString(_readMap(raw, ['wedding']), 'time'),
     _readString(raw, 'wedding_time'),
     _readString(_readMap(raw, ['data']), 'wedding_time'),
+    // also check couple-related nesting for time
+    _readString(_readMap(raw, ['data', 'couple']), 'wedding_time'),
+    _readString(_readMap(raw, ['couple']), 'wedding_time'),
     _readString(_readMap(raw, ['event', 'wedding']), 'time'),
     _readString(_readMap(raw, ['event', 'wedding']), 'wedding_time'),
   ]);

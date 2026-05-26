@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:wedplan_mobile/core/services/auth_service.dart';
+import 'package:wedplan_mobile/repositories/couple/me_repository.dart';
 
 class PushNotificationService {
   PushNotificationService._();
@@ -49,8 +51,35 @@ class PushNotificationService {
     );
 
     if (defaultTargetPlatform == TargetPlatform.android) {
-      await messaging.getToken();
+      final token = await messaging.getToken();
+      try {
+        if (token != null && token.isNotEmpty) {
+          final loggedIn = await AuthService.instance.hasToken();
+          if (loggedIn) {
+            await MeRepository.instance.updateProfile({'device_token': token});
+            if (kDebugMode)
+              debugPrint('Registered existing device token with server');
+          }
+        }
+      } catch (e) {
+        if (kDebugMode)
+          debugPrint('Error registering device token at startup: $e');
+      }
     }
+
+    // listen for token refresh and register with backend when authenticated
+    messaging.onTokenRefresh.listen((newToken) async {
+      try {
+        if (newToken == null || newToken.isEmpty) return;
+        final loggedIn = await AuthService.instance.hasToken();
+        if (!loggedIn) return;
+        await MeRepository.instance.updateProfile({'device_token': newToken});
+        if (kDebugMode)
+          debugPrint('Registered refreshed device token with server');
+      } catch (e) {
+        if (kDebugMode) debugPrint('Error registering refreshed token: $e');
+      }
+    });
 
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleOpenedMessage);
@@ -86,6 +115,15 @@ class PushNotificationService {
         >();
 
     await androidPlugin?.createNotificationChannel(_androidChannel);
+  }
+
+  Future<String?> getDeviceToken() async {
+    final messaging = FirebaseMessaging.instance;
+    try {
+      return await messaging.getToken();
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {

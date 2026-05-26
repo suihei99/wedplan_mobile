@@ -4,13 +4,15 @@ This document is a complete integration guide for the WebPlan mobile app. All en
 
 ## Base URL
 
-Use your app domain with the API prefix:
+The Flutter app currently defaults to the hosted API at `https://wedplan.projectse.io/api/v1` and can be overridden with the `API_BASE_URL` compile-time environment variable.
+
+Use your hosted app domain with the API prefix:
 
 ```text
 https://your-domain.com/api/v1
 ```
 
-For local development:
+For local development only:
 
 ```text
 http://localhost:8000/api/v1
@@ -26,7 +28,7 @@ Accept: application/json
 Content-Type: application/json
 ```
 
-Note: Authentication responses (for example after `POST /auth/login` or `POST /auth/register/couple`) include a `user` object that already contains the related profile data. If the returned `role` is `couple`, the `user` payload will include a `couple` object (partner names, wedding details). If the `role` is `vendor`, the `user` payload will include a `vendor` object (business details). Mobile clients can rely on this single `user` payload to access profile information without calling a separate profile endpoint.
+Note: Authentication responses (for example after `POST /auth/login` or `POST /auth/register/couple`) include a `user` object that already contains the related profile data. The user payload also includes `profile_photo_url` and the related raw `couple` or `vendor` model when that profile exists, so mobile clients can read profile data from a single response without making a second request.
 
 ## Common Response Pattern
 
@@ -168,6 +170,8 @@ Request body:
 
 Valid values: `pending`, `confirmed`, `declined`
 
+The app also sends `code` and, when available, `guest_name` so the backend can match the invitation record consistently.
+
 Successful response (200):
 
 ```json
@@ -182,6 +186,35 @@ Successful response (200):
     "invite_code": "INV12345",
     "created_at": "2026-05-17T10:30:00.000000Z",
     "updated_at": "2026-05-17T10:35:00.000000Z"
+  }
+}
+```
+
+### Public Guest Check-In
+
+`POST /api/v1/guest/checkin/{code}`
+
+Allows guests to check in without authentication.
+
+Request body:
+
+```json
+{
+  "code": "INV12345",
+  "guest_name": "Charlie Guest"
+}
+```
+
+The app sends `code` on every request and includes `guest_name` when it is available from the invitation form.
+
+Successful response (200):
+
+```json
+{
+  "data": {
+    "id": 1,
+    "name": "Charlie Guest",
+    "checked_in_at": "2026-12-25T18:30:00.000000Z"
   }
 }
 ```
@@ -277,6 +310,8 @@ Successful response (201):
 Note: Vendor account will be inactive until admin approves the registration.
 `business_documents` is stored on the public disk under `vendor-documents/` and is accessible through `/storage/...`.
 
+The uploaded document must be a PDF, PNG, JPG, or JPEG file.
+
 ### Login
 
 `POST /api/v1/auth/login`
@@ -286,9 +321,12 @@ Request body:
 ```json
 {
   "email": "user@example.com",
-  "password": "password123"
+  "password": "password123",
+  "device_token": "firebase-device-token"
 }
 ```
+
+Note: The mobile app can send the Firebase device token during login. If present, the API stores it on the authenticated user for push notification delivery.
 
 Successful response (200):
 
@@ -318,6 +356,7 @@ Successful response (200):
   }
 }
 ```
+If `device_token` is included in the login request, it is saved to the authenticated user record but is not returned in the response payload.
 
 For vendor login, the `vendor` object replaces `couple`:
 
@@ -395,7 +434,8 @@ Successful response (200):
     "email": "vendor@example.com",
     "role": "vendor",
     "profile_photo_path": "profile-photos/avatar.jpg",
-    "profile_photo_url": "http://localhost/storage/profile-photos/avatar.jpg",
+    "profile_photo_url": "https://wedplan.projectse.io/storage/profile-photos/avatar.jpg",
+    "is_active": true,
     "created_at": "2026-05-18T10:00:00.000000Z",
     "updated_at": "2026-05-18T10:00:00.000000Z"
   }
@@ -413,14 +453,21 @@ Request body:
 ```json
 {
   "email": "new-email@example.com",
+  "device_token": "expo-push-token",
+  "current_password": "current-password",
+  "password": "new-password123",
+  "password_confirmation": "new-password123",
   "profile_photo": "multipart file"
 }
 ```
 
 Notes:
 
+- `device_token` stores the mobile push token for the authenticated user and is used for push notification delivery.
 - `profile_photo` is only accepted for vendor accounts.
-- The uploaded file is stored on the public disk under `profile-photos/`.
+- `device_token` is optional and can be used for push notification registration.
+- To change the password, send `current_password`, `password`, and `password_confirmation` together.
+- The uploaded profile photo is stored on the public disk under `profile-photos/`.
 
 Successful response (200):
 
@@ -432,12 +479,15 @@ Successful response (200):
     "email": "new-email@example.com",
     "role": "vendor",
     "profile_photo_path": "profile-photos/avatar.jpg",
-    "profile_photo_url": "http://localhost/storage/profile-photos/avatar.jpg",
+    "profile_photo_url": "https://wedplan.projectse.io/storage/profile-photos/avatar.jpg",
+    "is_active": true,
     "created_at": "2026-05-18T10:00:00.000000Z",
     "updated_at": "2026-05-18T10:05:00.000000Z"
   }
 }
 ```
+
+Note: The `device_token` field is stored on the authenticated user but is not returned in the `data` payload.
 
 ## Couple Endpoints
 
@@ -457,14 +507,33 @@ Successful response (200):
 ```json
 {
   "data": {
-    "total_expenses": 15000,
-    "total_budget": 50000,
-    "remaining_budget": 35000,
-    "guest_count": 45,
-    "rsvp_confirmed": 40,
-    "tasks_completed": 8,
+    "wedding_date": "December 25, 2026",
+    "days_until_wedding": 213,
+    "progress_percentage": 67,
+    "tasks_done": 8,
     "tasks_total": 12,
-    "vendors_booked": 5
+    "upcoming_tasks": [
+      {
+        "title": "Confirm photographer",
+        "due_date": "01 Aug 2026"
+      }
+    ],
+    "guests_total": 45,
+    "guests_confirmed": 40,
+    "total_budget": 50000,
+    "budget_spent": 15000,
+    "budget_remaining": 35000,
+    "budget_categories": [
+      {
+        "name": "Venue",
+        "amount": 15000,
+        "percentage": 30
+      }
+    ],
+    "vendors_booked": 5,
+    "vendors_pending": 2,
+    "budget": {},
+    "guests_summary": {}
   }
 }
 ```
@@ -480,22 +549,20 @@ Successful response (200):
 ```json
 {
   "data": {
-    "total_budget": 50000,
+    "total_budget_limit": 50000,
+    "effective_budget_limit": 50000,
     "total_allocated": 45000,
+    "total_spent": 15000,
+    "remaining": 35000,
     "categories": [
       {
         "id": 1,
         "category_name": "Venue",
         "allocated_amount": 15000,
-        "spent_amount": 10000,
-        "remaining": 5000
-      },
-      {
-        "id": 2,
-        "category_name": "Catering",
-        "allocated_amount": 20000,
-        "spent_amount": 5000,
-        "remaining": 15000
+        "total_spent": 10000,
+        "remaining_budget": 5000,
+        "is_overspent": false,
+        "overspent_amount": 0
       }
     ]
   }
@@ -541,6 +608,7 @@ Successful response (200):
 {
   "data": {
     "id": 1,
+    "user_id": 1,
     "category_name": "Venue",
     "allocated_amount": 15000,
     "created_at": "2026-05-18T10:00:00.000000Z",
@@ -597,8 +665,8 @@ Get all vendor services available to couples (approved vendors only):
 
 Query params:
 - `search` (optional) filter by business name
-- `type_service` (optional) filter by service type
-- `per_page` (optional) number of items per page (default 9)
+- `type_service` (optional) filter by the stored service category name, such as `Venue`, `Catering`, or `Photography`
+- `per_page` (optional) number of items per page (default 100 in the current app integration)
 
 Successful response (200):
 
@@ -666,7 +734,8 @@ Successful response (200):
       "date_paid": "2026-06-01",
       "description": "Initial deposit for venue",
       "payment_method": "cash",
-      "receipt": null,
+      "receipt_path": null,
+      "receipt_url": null,
       "created_at": "2026-05-18T10:00:00.000000Z",
       "updated_at": "2026-05-18T10:00:00.000000Z"
     }
@@ -882,7 +951,7 @@ Request body:
 }
 ```
 
-Priority values: `2` (High), `1` (Medium), `0` (Low)
+Priority values: `0` (Low), `1` (Medium), `2` (High)
 
 Successful response (201):
 
@@ -918,7 +987,7 @@ Successful response (200):
 
 ```json
 {
-  "message": "Task marked as complete.",
+  "message": "Task marked as completed.",
   "data": {
     "id": 1,
     "task_name": "Confirm photographer",
@@ -959,15 +1028,8 @@ Successful response (200):
 
 ```json
 {
-  "data": {
-    "estimate": "For 250 guests with a budget of RM 25000 - RM 40000, we recommend...",
-    "suggestions": [
-      {
-        "category": "Venue",
-        "recommended_budget": "RM 8000 - RM 12000"
-      }
-    ]
-  }
+  "success": true,
+  "message": "For 250 guests with a budget of RM 25000 - RM 40000, we recommend..."
 }
 ```
 
@@ -989,14 +1051,16 @@ Successful response (200):
 
 ```json
 {
-  "data": {
-    "reply": "Based on 250 guests and your budget range of RM 25000 - RM 40000...",
-    "suggestions": []
-  }
+  "success": true,
+  "message": "Based on 250 guests and your budget range of RM 25000 - RM 40000..."
 }
 ```
 
-Rate limit: `429` if exceeded (AI assistant usage limits)
+Possible error responses:
+
+- `429` with `success: false` and `rate_limited: true` when the AI limit is exceeded
+- `503` with `success: false` and `offline: true` when the assistant is unavailable
+- `500` with `success: false` for unexpected errors
 
 ## Vendor Endpoints
 
@@ -1016,14 +1080,23 @@ Successful response (200):
 
 ```json
 {
-  "data": {
-    "total_services": 5,
-    "total_bookings": 12,
-    "confirmed_bookings": 10,
-    "pending_bookings": 2,
-    "total_revenue": 45000,
-    "unread_notifications": 3
-  }
+  "vendor": {
+    "id": 1,
+    "business_name": "Photography Plus",
+    "business_type": "photography",
+    "contact_number": "+60123456789",
+    "status": "approved",
+    "address": "Kuala Lumpur, Malaysia"
+  },
+  "dashboard": {
+    "bookings_total": 12,
+    "bookings_confirmed": 10,
+    "bookings_pending": 2,
+    "services_total": 5,
+    "booking_dates": ["2026-09-10"]
+  },
+  "bookings": [],
+  "services": []
 }
 ```
 
@@ -1045,7 +1118,7 @@ Successful response (200):
       "price_estimate": 4500,
       "description": "Full day wedding coverage",
       "image_url": "services/photo_1.jpg",
-      "image_url_resolved": "http://localhost/storage/services/photo_1.jpg",
+      "image_url_resolved": "https://wedplan.projectse.io/storage/services/photo_1.jpg",
       "created_at": "2026-05-18T10:00:00.000000Z",
       "updated_at": "2026-05-18T10:00:00.000000Z"
     }
@@ -1153,10 +1226,9 @@ Successful response (200):
     {
       "id": 1,
       "couple_id": 5,
-      "service_id": 1,
       "type_service": "photography",
       "booking_date": "2026-09-10",
-      "status": "confirmed",
+      "status": true,
       "notes": "Morning session",
       "created_at": "2026-05-18T10:00:00.000000Z",
       "updated_at": "2026-05-18T10:00:00.000000Z"
@@ -1193,7 +1265,7 @@ Successful response (201):
     "couple_id": 5,
     "type_service": "photography",
     "booking_date": "2026-09-10",
-    "status": "confirmed",
+    "status": true,
     "notes": "Morning session",
     "created_at": "2026-05-18T10:00:00.000000Z",
     "updated_at": "2026-05-18T10:00:00.000000Z"
@@ -1233,16 +1305,21 @@ Successful response (200):
 
 ```json
 {
-  "data": [
-    {
-      "id": 1,
-      "notifiable_id": 2,
-      "title": "New booking request",
-      "message": "A couple has requested your service",
-      "read_at": null,
-      "created_at": "2026-05-18T10:00:00.000000Z"
-    }
-  ]
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "user_id": 2,
+        "title": "New booking request",
+        "message": "A couple has requested your service",
+        "is_read": false,
+        "created_at": "2026-05-18T10:00:00.000000Z",
+        "updated_at": "2026-05-18T10:00:00.000000Z"
+      }
+    ],
+    "last_page": 1
+  }
 }
 ```
 
@@ -1258,17 +1335,78 @@ Successful response (200):
 
 ```json
 {
+  "success": true,
   "message": "Notification marked as read.",
-  "data": {
-    "id": 1,
-    "read_at": "2026-05-18T10:05:00.000000Z"
-  }
 }
 ```
 
 Delete notification:
 
 `DELETE /api/v1/vendor/notifications/{notification}`
+
+Successful response (200):
+
+```json
+{
+  "message": "Notification deleted successfully."
+}
+```
+
+## Couple Notification Endpoints
+
+All couple notification endpoints require:
+
+- Authentication via Sanctum token
+- `role:couple` (enforced via middleware)
+
+These endpoints are now aligned with the current mobile app integration and should be used for couple-side notification lists, detail views, mark-as-read, and delete actions.
+
+### Get Couple Notifications
+
+`GET /api/v1/couple/notifications`
+
+Successful response (200):
+
+```json
+{
+  "data": {
+    "current_page": 1,
+    "data": [
+      {
+        "id": 1,
+        "user_id": 2,
+        "title": "Booking Approved",
+        "message": "Your venue booking has been approved.",
+        "is_read": false,
+        "created_at": "2026-05-18T10:00:00.000000Z",
+        "updated_at": "2026-05-18T10:00:00.000000Z"
+      }
+    ],
+    "last_page": 1
+  }
+}
+```
+
+### Get Specific Couple Notification
+
+`GET /api/v1/couple/notifications/{notification}`
+
+### Mark Couple Notification as Read
+
+`PUT /api/v1/couple/notifications/{notification}/read`
+
+Successful response (200):
+
+```json
+{
+  "success": true,
+  "message": "Notification marked as read."
+}
+```
+
+### Delete Couple Notification
+
+`DELETE /api/v1/couple/notifications/{notification}`
 
 Successful response (200):
 
@@ -1308,6 +1446,14 @@ Successful response (200):
   "message": "Couple profile not found."
 }
 ```
+
+## Current Response Notes
+
+- Vendor service types are TitleCase values from `Venue`, `Catering`, `Photography`, `Makeup Artist`, `Wedding Planner`, `Bridal Wear`, `Decor & Styling`, `Entertainment`, `Transportation`, and `Other`.
+- Booking `status` is a boolean in the API: `true` means confirmed and `false` means pending.
+- Notification lists are paginated and return `user_id`, `title`, `message`, `is_read`, `created_at`, and `updated_at`.
+- Notification lists are paginated and return `user_id`, `title`, `message`, `is_read`, `created_at`, and `updated_at` for both vendor and couple APIs.
+- `device_token` is accepted by `PUT /api/v1/settings` and stored on the authenticated user for push notification delivery.
 
 ### Example Error Response (404)
 
@@ -1358,6 +1504,13 @@ curl -X POST https://your-domain.com/api/v1/auth/register/vendor \
 - Include it with every authenticated request
 - Refresh or re-authenticate if the token expires
 - Delete the token on logout
+
+### Push Notification Token
+
+- The app obtains the Firebase device token at startup with `FirebaseMessaging.getToken()` and keeps it in sync when Firebase refreshes the token.
+- The token is not part of the login request in the current integration.
+- Send the token to the backend after authentication via `PUT /api/v1/settings` using the `device_token` field.
+- The backend should store `device_token` against the authenticated user and use it for push delivery to both couple and vendor devices.
 
 ### Role-Based Routing
 

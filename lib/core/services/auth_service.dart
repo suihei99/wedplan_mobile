@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:wedplan_mobile/core/network/api_service.dart';
 import 'package:wedplan_mobile/core/services/app_session_cache.dart';
+import 'package:wedplan_mobile/services/push_notification_service.dart';
+import 'package:wedplan_mobile/repositories/couple/me_repository.dart';
 
 class AuthService {
   AuthService._internal({ApiService? apiService})
@@ -57,7 +59,26 @@ class AuthService {
 
   Future<Map<String, dynamic>> login(dynamic data) async {
     print('🔐 AuthService.login() starting...');
-    final response = await _apiService.login(data);
+    // Attach device token (if available) to the login payload so backend
+    // can register the device during authentication.
+    dynamic loginPayload = data;
+    try {
+      final deviceToken = await PushNotificationService.instance
+          .getDeviceToken();
+      if (deviceToken != null && deviceToken.isNotEmpty) {
+        if (data is Map<String, dynamic>) {
+          loginPayload = {...data, 'device_token': deviceToken};
+        } else if (data is Map) {
+          loginPayload = Map<String, dynamic>.from(data as Map)
+            ..['device_token'] = deviceToken;
+        }
+      }
+    } catch (_) {
+      // ignore token fetch failures and continue with original payload
+      loginPayload = data;
+    }
+
+    final response = await _apiService.login(loginPayload);
     print('🔐 AuthService.login() - API response received');
     print('🔐 Response data type: ${response.data.runtimeType}');
     print('🔐 Response data: ${response.data}');
@@ -70,6 +91,20 @@ class AuthService {
 
     await _storeSessionDetails(response.data);
     print('🔐 Session details persisted');
+
+    // Register current device token with backend (if any)
+    try {
+      final deviceToken = await PushNotificationService.instance
+          .getDeviceToken();
+      if (deviceToken != null && deviceToken.isNotEmpty) {
+        await MeRepository.instance.updateProfile({
+          'device_token': deviceToken,
+        });
+        print('🔔 Device token registered with server');
+      }
+    } catch (e) {
+      print('🔔 Failed to register device token: $e');
+    }
 
     // Debug: log what was extracted
     print('🔐 AuthService.login - Cache check:');

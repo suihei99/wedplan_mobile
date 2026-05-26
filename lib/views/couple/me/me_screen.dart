@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:wedplan_mobile/models/couple/me_profile.dart';
 import 'package:wedplan_mobile/viewmodels/couple/me_view_model.dart';
-import 'package:wedplan_mobile/views/auth/login.dart';
+import 'package:wedplan_mobile/views/welcome.dart';
 import 'package:wedplan_mobile/views/couple/me/ai_budget/ai_budget_screen.dart';
 import 'package:wedplan_mobile/views/couple/me/setting/change_password_screen.dart';
 import 'package:wedplan_mobile/views/couple/me/setting/couple_view_screen.dart';
@@ -176,7 +176,7 @@ class _MeScreenState extends State<MeScreen> {
       await vm.logout();
       if (!context.mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+        MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
         (route) => false,
       );
     } catch (_) {

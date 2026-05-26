@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:wedplan_mobile/models/guest/guest_invitation.dart';
+import 'package:wedplan_mobile/core/services/app_session_cache.dart';
 import 'package:wedplan_mobile/views/shared/welcome_theme.dart';
 
 enum GuestEntryMode { scan, code }
@@ -708,8 +709,58 @@ class GuestInvitationCard extends StatelessWidget {
     final isAccepted = invitation.checkedIn || isRsvpConfirmed;
     final guestName = invitation.guestName.trim();
     final paxText = _formatPax(invitation.paxCount);
-    final weddingDate = _formatDate(invitation.weddingDate);
-    final weddingTime = _formatTime(invitation.weddingTime);
+    final cachedCouple =
+        AppSessionCache.instance.coupleDetail ?? <String, dynamic>{};
+
+    // Try to extract wedding date/time directly from the raw payload as a
+    // last-resort fallback (handles shapes like `data.wedding.date` etc.).
+    final Map<String, dynamic> raw = invitation.raw;
+
+    String? readNested(List<String> keys) {
+      dynamic cur = raw;
+      for (final k in keys) {
+        if (cur is Map && cur.containsKey(k)) {
+          cur = cur[k];
+        } else {
+          return null;
+        }
+      }
+      if (cur == null) return null;
+      return cur.toString();
+    }
+
+    final rawWeddingDate =
+        readNested(['data', 'wedding', 'date']) ??
+        readNested(['wedding', 'date']) ??
+        readNested(['data', 'wedding_date']) ??
+        readNested(['wedding_date']) ??
+        readNested(['data', 'couple', 'wedding_date']) ??
+        readNested(['couple', 'wedding_date']);
+
+    final rawWeddingTime =
+        readNested(['data', 'wedding', 'time']) ??
+        readNested(['wedding', 'time']) ??
+        readNested(['data', 'wedding_time']) ??
+        readNested(['wedding_time']) ??
+        readNested(['data', 'couple', 'wedding_time']) ??
+        readNested(['couple', 'wedding_time']);
+
+    final weddingDateSource = invitation.weddingDate.isNotEmpty
+        ? invitation.weddingDate
+        : (rawWeddingDate ??
+              cachedCouple['wedding_date']?.toString() ??
+              cachedCouple['weddingDate']?.toString() ??
+              '');
+
+    final weddingTimeSource = invitation.weddingTime.isNotEmpty
+        ? invitation.weddingTime
+        : (rawWeddingTime ??
+              cachedCouple['wedding_time']?.toString() ??
+              cachedCouple['weddingTime']?.toString() ??
+              '');
+
+    final weddingDate = _formatDate(weddingDateSource);
+    final weddingTime = _formatTime(weddingTimeSource);
 
     return Container(
       decoration: BoxDecoration(
