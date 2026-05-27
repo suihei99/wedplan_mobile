@@ -16,6 +16,11 @@ class VendorBookingRepository {
     return _parseItems(response.data);
   }
 
+  Future<List<Map<String, dynamic>>> fetchCouples() async {
+    final response = await _apiService.vendorCouples();
+    return _parseItems(response.data);
+  }
+
   Future<Map<String, dynamic>?> showBooking(Object id) async {
     final response = await _apiService.vendorBookingShow(id);
     final map = _toMap(response.data);

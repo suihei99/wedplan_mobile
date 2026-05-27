@@ -135,7 +135,7 @@ class ApiService {
     return get<dynamic>(ApiRouter.settings);
   }
 
-  Future<Response<dynamic>> updateSettings(Map<String, dynamic> data) {
+  Future<Response<dynamic>> updateSettings(dynamic data) {
     return put<dynamic>(ApiRouter.settings, data: data);
   }
 
@@ -145,6 +145,10 @@ class ApiService {
 
   Future<Response<dynamic>> vendorServices() {
     return get<dynamic>(ApiRouter.vendorServices);
+  }
+
+  Future<Response<dynamic>> vendorCouples() {
+    return get<dynamic>(ApiRouter.vendorCouples);
   }
 
   Future<Response<dynamic>> vendorServiceCreate(dynamic data) {

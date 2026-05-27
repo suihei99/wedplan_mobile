@@ -13,12 +13,14 @@ class VendorBookingViewModel extends ChangeNotifier {
   bool _busy = false;
   String? _error;
   List<Map<String, dynamic>> _bookings = const <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> _couples = const <Map<String, dynamic>>[];
   String _query = '';
   String _selectedStatus = 'all';
 
   bool get busy => _busy;
   String? get error => _error;
   List<Map<String, dynamic>> get bookings => _bookings;
+  List<Map<String, dynamic>> get couples => _couples;
   String get query => _query;
   String get selectedStatus => _selectedStatus;
 
@@ -47,30 +49,25 @@ class VendorBookingViewModel extends ChangeNotifier {
   int get totalBookings => _bookings.length;
 
   int get pendingBookings => _bookings.where((item) {
-    final status = _readString(item, const [
-      'status',
-      'booking_status',
-      'state',
-    ]);
-    return status.toLowerCase().contains('pending');
+    final status = _bookingStatus(item);
+    return status == 'pending';
   }).length;
 
   int get confirmedBookings => _bookings.where((item) {
-    final status = _readString(item, const [
-      'status',
-      'booking_status',
-      'state',
-    ]);
-    return status.toLowerCase().contains('confirm');
+    final status = _bookingStatus(item);
+    return status == 'confirmed';
   }).length;
 
   int get completedBookings => _bookings.where((item) {
-    final status = _readString(item, const [
-      'status',
-      'booking_status',
-      'state',
+    final completed = _readBool(item, const [
+      'is_completed',
+      'completed',
+      'done',
     ]);
-    return status.toLowerCase().contains('complete');
+    if (completed != null) return completed;
+
+    final status = _bookingStatus(item);
+    return status == 'completed' || status == 'done';
   }).length;
 
   Future<void> load({bool forceRefresh = false}) async {
@@ -86,6 +83,20 @@ class VendorBookingViewModel extends ChangeNotifier {
       notifyListeners();
     } finally {
       _setBusy(false);
+    }
+  }
+
+  Future<void> loadCouples() async {
+    try {
+      _couples = await _repository.fetchCouples();
+      notifyListeners();
+    } on DioException catch (error) {
+      _couples = const <Map<String, dynamic>>[];
+      final statusCode = error.response?.statusCode;
+      if (statusCode != 404) {
+        _error = _message(error);
+      }
+      notifyListeners();
     }
   }
 
@@ -218,9 +229,56 @@ class VendorBookingViewModel extends ChangeNotifier {
   }
 
   String bookingStatusLabel(Map<String, dynamic> booking) {
+    final status = _bookingStatus(booking);
+    if (status.isEmpty) return '';
+    switch (status) {
+      case 'confirmed':
+        return 'Confirmed';
+      case 'pending':
+        return 'Pending';
+      case 'completed':
+      case 'done':
+        return 'Done';
+      default:
+        return status;
+    }
+  }
+
+  String _bookingStatus(Map<String, dynamic> booking) {
     final status = booking['status'];
-    if (status is bool) return status ? 'Confirmed' : 'Pending';
-    return _readString(booking, const ['status', 'booking_status', 'state']);
+    if (status is bool) return status ? 'confirmed' : 'pending';
+
+    final completion = _readBool(booking, const [
+      'is_completed',
+      'completed',
+      'done',
+    ]);
+    if (completion != null) return completion ? 'completed' : 'pending';
+
+    return _readString(booking, const [
+      'status',
+      'booking_status',
+      'state',
+    ]).toLowerCase();
+  }
+
+  bool? _readBool(Map<String, dynamic> source, List<String> keys) {
+    for (final key in keys) {
+      final value = source[key];
+      if (value is bool) return value;
+      if (value is num) return value != 0;
+      if (value is String) {
+        final normalized = value.trim().toLowerCase();
+        if (normalized.isEmpty || normalized == 'null') continue;
+        if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+          return true;
+        }
+        if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+          return false;
+        }
+      }
+    }
+    return null;
   }
 
   String _readString(Map<String, dynamic> source, List<String> keys) {

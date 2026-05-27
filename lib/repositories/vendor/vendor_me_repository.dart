@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import 'package:wedplan_mobile/core/network/api_service.dart';
 import 'package:wedplan_mobile/core/services/auth_service.dart';
 
@@ -16,6 +18,16 @@ class VendorMeRepository {
       'settings': _unwrap(_toMap(settingsResponse.data)),
       'dashboard': _unwrap(_toMap(dashboardResponse.data)),
     };
+  }
+
+  Future<Map<String, dynamic>> updateProfile(dynamic data) async {
+    final response = await _apiService.updateSettings(data);
+    return _toMap(response.data);
+  }
+
+  Future<Map<String, dynamic>> changePassword(Map<String, dynamic> data) async {
+    final response = await _apiService.updateSettings(data);
+    return _toMap(response.data);
   }
 
   Future<Map<String, dynamic>> logout() {

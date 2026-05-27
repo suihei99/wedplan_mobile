@@ -28,6 +28,7 @@ class ApiRouter {
   static const String vendorDashboard = '$vendorPrefix/dashboard';
   static const String vendorServices = '$vendorPrefix/services';
   static String vendorServiceById(Object id) => '$vendorServices/$id';
+  static const String vendorCouples = '$vendorPrefix/couples';
   static const String vendorBookings = '$vendorPrefix/bookings';
   static String vendorBookingById(Object id) => '$vendorBookings/$id';
   static const String vendorNotifications = '$vendorPrefix/notifications';

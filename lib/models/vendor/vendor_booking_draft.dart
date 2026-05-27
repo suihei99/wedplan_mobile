@@ -25,6 +25,8 @@ class VendorBookingDraft {
 
   Map<String, dynamic> toUpdateJson() {
     return <String, dynamic>{
+      'couple_id': int.tryParse(coupleId.trim()) ?? coupleId.trim(),
+      'type_service': typeService.trim(),
       'booking_date': bookingDate.toIso8601String().split('T').first,
       'status': status,
       'notes': notes.trim(),

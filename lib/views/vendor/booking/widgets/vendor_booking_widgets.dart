@@ -650,13 +650,13 @@ class VendorBookingStatusSwitch extends StatelessWidget {
 class VendorBookingInlinePreview extends StatelessWidget {
   const VendorBookingInlinePreview({
     super.key,
-    required this.coupleId,
+    required this.coupleLabel,
     required this.typeService,
     required this.bookingDateLabel,
     required this.isConfirmed,
   });
 
-  final String coupleId;
+  final String coupleLabel;
   final String typeService;
   final String bookingDateLabel;
   final bool isConfirmed;
@@ -694,15 +694,19 @@ class VendorBookingInlinePreview extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  coupleId.isEmpty ? 'Couple ID preview' : 'Couple #$coupleId',
+                  coupleLabel.isEmpty ? 'Couple preview' : coupleLabel,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.manrope(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   typeService.isEmpty ? 'Service type preview' : typeService,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.manrope(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -714,6 +718,8 @@ class VendorBookingInlinePreview extends StatelessWidget {
                   bookingDateLabel.isEmpty
                       ? 'Pick a booking date'
                       : bookingDateLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.manrope(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -884,6 +890,87 @@ String bookingStatusLabel(Map<String, dynamic> booking) {
   return label;
 }
 
+String coupleDisplayLabel(Map<String, dynamic> booking) {
+  final source = _bookingResource(booking);
+  final coupleUser = _readMap(source, const [
+    'couple',
+    'user',
+    'owner',
+    'host',
+  ]);
+  final coupleProfile = _readMap(coupleUser, const ['couple', 'profile']);
+  final nestedProfile = _readMap(source, const [
+    'couple_profile',
+    'profile',
+    'coupleData',
+  ]);
+
+  final displayName =
+      _readString(coupleProfile, const [
+        'display_name',
+        'couple_name',
+        'title',
+      ]).isNotEmpty
+      ? _readString(coupleProfile, const [
+          'display_name',
+          'couple_name',
+          'title',
+        ])
+      : _readString(nestedProfile, const [
+          'display_name',
+          'couple_name',
+          'title',
+        ]);
+  final partnerOne =
+      _readString(coupleProfile, const ['partner_1_name']).isNotEmpty
+      ? _readString(coupleProfile, const ['partner_1_name'])
+      : _readString(nestedProfile, const ['partner_1_name']);
+  final partnerTwo =
+      _readString(coupleProfile, const ['partner_2_name']).isNotEmpty
+      ? _readString(coupleProfile, const ['partner_2_name'])
+      : _readString(nestedProfile, const ['partner_2_name']);
+  final coupleName = displayName.isNotEmpty
+      ? displayName
+      : (partnerOne.isNotEmpty && partnerTwo.isNotEmpty
+            ? '$partnerOne & $partnerTwo'
+            : _readString(source, const [
+                'couple_name',
+                'customer_name',
+                'client_name',
+                'display_name',
+                'title',
+              ]));
+  final email = _readString(coupleUser, const [
+    'email',
+    'couple_email',
+    'contact_email',
+  ]);
+
+  if (coupleName.isNotEmpty && email.isNotEmpty) {
+    return '$coupleName • $email';
+  }
+  if (coupleName.isNotEmpty) return coupleName;
+  if (email.isNotEmpty) return email;
+  return 'Couple';
+}
+
+Map<String, dynamic> _bookingResource(Map<String, dynamic> booking) {
+  final candidates = [
+    const ['data', 'booking', 'resource'],
+    const ['data', 'resource'],
+    const ['booking', 'resource'],
+    const ['resource'],
+    const ['data'],
+  ];
+
+  for (final path in candidates) {
+    final nested = _readMap(booking, path);
+    if (nested.isNotEmpty) return nested;
+  }
+
+  return booking;
+}
+
 String _formatDateLabel(String value) {
   if (value.isEmpty) return 'Date unavailable';
   final parsed = DateTime.tryParse(value);
@@ -894,6 +981,19 @@ String _formatDateLabel(String value) {
 String _readBookingId(Map<String, dynamic> booking) {
   final value = booking['id'] ?? booking['booking_id'];
   return value?.toString() ?? '';
+}
+
+Map<String, dynamic> _readMap(Map<String, dynamic> source, List<String> keys) {
+  for (final key in keys) {
+    final value = source[key];
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map<String, dynamic>(
+        (entryKey, entryValue) => MapEntry(entryKey.toString(), entryValue),
+      );
+    }
+  }
+  return const <String, dynamic>{};
 }
 
 String _titleCase(String value) {

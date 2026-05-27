@@ -267,30 +267,12 @@ Successful response (201):
       "wedding_time": "19:30",
       "wedding_venue": "Kuala Lumpur",
       "total_budget_limit": 50000,
-      "display_name": "Alya & Haziq",
       "created_at": "2026-05-18T10:00:00.000000Z",
       "updated_at": "2026-05-18T10:00:00.000000Z"
     }
   }
 }
 ```
-
-### Register Vendor
-
-`POST /api/v1/auth/register/vendor`
-
-Request must be sent as `multipart/form-data` (file upload required).
-
-Fields:
-
-- `email` (required, unique)
-- `password` (required, min 8 characters)
-- `password_confirmation` (required)
-- `business_name` (required)
-- `business_type` (required)
-- `contact_number` (required)
-- `address` (required)
-- `business_documents` (required, file: `pdf`, `png`, `jpg`, `jpeg`)
 
 Successful response (201):
 
@@ -356,6 +338,7 @@ Successful response (200):
   }
 }
 ```
+
 If `device_token` is included in the login request, it is saved to the authenticated user record but is not returned in the response payload.
 
 For vendor login, the `vendor` object replaces `couple`:
@@ -1214,6 +1197,8 @@ Successful response (200):
 
 ### Bookings
 
+The current backend does not expose a dedicated vendor couples endpoint. The Flutter app keeps the booking add form aligned with the existing booking resources and still submits only `couple_id` when saving.
+
 Get all vendor bookings:
 
 `GET /api/v1/vendor/bookings`
@@ -1253,7 +1238,9 @@ Request body:
 }
 ```
 
-Note: `status: true` means confirmed, `status: false` means pending
+Note: `status: true` means confirmed, `status: false` means pending.
+
+Important: the API only needs `couple_id` in the request body. The backend stores that ID in the booking record. Flutter should not call a nonexistent vendor couples route.
 
 Successful response (201):
 
@@ -1268,7 +1255,17 @@ Successful response (201):
     "status": true,
     "notes": "Morning session",
     "created_at": "2026-05-18T10:00:00.000000Z",
-    "updated_at": "2026-05-18T10:00:00.000000Z"
+    "updated_at": "2026-05-18T10:00:00.000000Z",
+    "couple": {
+      "id": 5,
+      "email": "couple@example.com",
+      "couple": {
+        "id": 2,
+        "partner_1_name": "Alya",
+        "partner_2_name": "Haziq",
+        "display_name": "Alya & Haziq"
+      }
+    }
   }
 }
 ```
@@ -1288,6 +1285,41 @@ Request body:
   "booking_date": "2026-09-11",
   "status": true,
   "notes": "Updated notes"
+}
+```
+
+Notes:
+
+- The mobile app currently updates `booking_date`, `status`, and `notes`.
+- `status: true` means confirmed, `status: false` means pending.
+- The API may return the updated booking together with related couple resource data when available, including the couple email and nested profile display name.
+- The booking form can show the couple label from that nested resource data, but it still submits `couple_id` when saving.
+
+Successful response (200):
+
+```json
+{
+  "message": "Booking updated successfully.",
+  "data": {
+    "id": 1,
+    "couple_id": 5,
+    "type_service": "photography",
+    "booking_date": "2026-09-11",
+    "status": true,
+    "notes": "Updated notes",
+    "created_at": "2026-05-18T10:00:00.000000Z",
+    "updated_at": "2026-05-18T10:05:00.000000Z",
+    "couple": {
+      "id": 5,
+      "email": "couple@example.com",
+      "couple": {
+        "id": 2,
+        "partner_1_name": "Alya",
+        "partner_2_name": "Haziq",
+        "display_name": "Alya & Haziq"
+      }
+    }
+  }
 }
 ```
 
@@ -1358,8 +1390,6 @@ All couple notification endpoints require:
 
 - Authentication via Sanctum token
 - `role:couple` (enforced via middleware)
-
-These endpoints are now aligned with the current mobile app integration and should be used for couple-side notification lists, detail views, mark-as-read, and delete actions.
 
 ### Get Couple Notifications
 
@@ -1452,8 +1482,11 @@ Successful response (200):
 - Vendor service types are TitleCase values from `Venue`, `Catering`, `Photography`, `Makeup Artist`, `Wedding Planner`, `Bridal Wear`, `Decor & Styling`, `Entertainment`, `Transportation`, and `Other`.
 - Booking `status` is a boolean in the API: `true` means confirmed and `false` means pending.
 - Notification lists are paginated and return `user_id`, `title`, `message`, `is_read`, `created_at`, and `updated_at`.
-- Notification lists are paginated and return `user_id`, `title`, `message`, `is_read`, `created_at`, and `updated_at` for both vendor and couple APIs.
+- Notification lists are paginated for both vendor and couple APIs.
 - `device_token` is accepted by `PUT /api/v1/settings` and stored on the authenticated user for push notification delivery.
+
+- Booking forms should submit `couple_id` and can display couple name/email only when the existing booking payload already includes nested couple data.
+- There is no dedicated `GET /api/v1/vendor/couples` route in the current backend.
 
 ### Example Error Response (404)
 
@@ -1507,10 +1540,9 @@ curl -X POST https://your-domain.com/api/v1/auth/register/vendor \
 
 ### Push Notification Token
 
-- The app obtains the Firebase device token at startup with `FirebaseMessaging.getToken()` and keeps it in sync when Firebase refreshes the token.
+- The app obtains the Firebase device token at startup with `FirebaseMessaging.getToken()`.
 - The token is not part of the login request in the current integration.
 - Send the token to the backend after authentication via `PUT /api/v1/settings` using the `device_token` field.
-- The backend should store `device_token` against the authenticated user and use it for push delivery to both couple and vendor devices.
 
 ### Role-Based Routing
 

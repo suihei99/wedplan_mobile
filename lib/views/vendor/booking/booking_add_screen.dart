@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:wedplan_mobile/models/vendor/vendor_booking_draft.dart';
+import 'package:wedplan_mobile/models/vendor/vendor_service.dart';
+import 'package:wedplan_mobile/repositories/vendor/vendor_service_management_repository.dart';
 import 'package:wedplan_mobile/viewmodels/vendor/vendor_booking_view_model.dart';
 import 'package:wedplan_mobile/views/shared/welcome_theme.dart';
 import 'package:wedplan_mobile/views/vendor/booking/widgets/vendor_booking_widgets.dart';
@@ -25,9 +27,11 @@ class _VendorBookingAddScreenState extends State<VendorBookingAddScreen> {
   late final TextEditingController _notesController;
 
   DateTime _selectedDate = DateTime.now();
-  String _selectedType = vendorServiceFormOptions.first.value;
+  VendorService? _selectedService;
   bool _status = false;
   bool _initialized = false;
+  bool _loadingServiceOptions = true;
+  List<VendorService> _serviceOptions = const <VendorService>[];
 
   @override
   void initState() {
@@ -37,6 +41,17 @@ class _VendorBookingAddScreenState extends State<VendorBookingAddScreen> {
       text: DateFormat('d MMM y').format(_selectedDate),
     );
     _notesController = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final vm = Provider.of<VendorBookingViewModel>(context, listen: false);
+      if (vm.couples.isEmpty && vm.bookings.isEmpty && !vm.busy) {
+        vm.load();
+      }
+      if (vm.couples.isEmpty) {
+        vm.loadCouples();
+      }
+    });
+    _loadServiceOptions();
   }
 
   @override
@@ -52,15 +67,21 @@ class _VendorBookingAddScreenState extends State<VendorBookingAddScreen> {
     final vm = Provider.of<VendorBookingViewModel>(context, listen: false);
     final booking = widget.booking;
     final isEditing = booking != null;
+    final coupleOptions = _coupleOptions(
+      vm.couples.isNotEmpty ? vm.couples : vm.bookings,
+      booking,
+    );
+    final selectedCouple = _selectedCoupleOption(coupleOptions);
+    final selectedCoupleLabel =
+        selectedCouple?.compactLabel ?? 'Select a couple';
 
     if (!_initialized && booking != null) {
       _initialized = true;
-      _coupleIdController.text = _readString(booking, const ['couple_id']);
+      _coupleIdController.text = _coupleSelectionId(booking);
       _notesController.text = _readString(booking, const [
         'notes',
         'description',
       ]);
-      _selectedType = _readType(booking);
       _status = _readStatus(booking);
       final parsedDate = DateTime.tryParse(
         _readString(booking, const ['booking_date', 'date', 'scheduled_at']),
@@ -70,6 +91,15 @@ class _VendorBookingAddScreenState extends State<VendorBookingAddScreen> {
         _dateController.text = DateFormat('d MMM y').format(parsedDate);
       }
     }
+
+    if (_selectedService == null && _serviceOptions.isNotEmpty) {
+      _selectedService = _serviceFromBooking(booking);
+      _selectedService ??= _serviceOptions.first;
+    }
+
+    final currentService =
+        _selectedService ??
+        (_serviceOptions.isNotEmpty ? _serviceOptions.first : null);
 
     return Scaffold(
       backgroundColor: welcomeBackgroundColor,
@@ -89,8 +119,8 @@ class _VendorBookingAddScreenState extends State<VendorBookingAddScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               VendorBookingInlinePreview(
-                coupleId: _coupleIdController.text.trim(),
-                typeService: _selectedType,
+                coupleLabel: selectedCoupleLabel,
+                typeService: currentService?.serviceName ?? 'Select a service',
                 bookingDateLabel: _dateController.text.trim(),
                 isConfirmed: _status,
               ),
@@ -115,54 +145,108 @@ class _VendorBookingAddScreenState extends State<VendorBookingAddScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      const VendorBookingFormLabel(text: 'Couple ID'),
+                      const VendorBookingFormLabel(text: 'Couple'),
                       const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _coupleIdController,
-                        readOnly: isEditing,
-                        onChanged: (_) => setState(() {}),
-                        keyboardType: TextInputType.number,
-                        textInputAction: TextInputAction.next,
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: selectedCouple?.id,
+                        items: coupleOptions
+                            .map(
+                              (option) => DropdownMenuItem<String>(
+                                value: option.id,
+                                child: _CoupleOptionTile(option: option),
+                              ),
+                            )
+                            .toList(),
+                        selectedItemBuilder: (context) => coupleOptions
+                            .map(
+                              (option) => Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  option.compactLabel,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: isEditing || coupleOptions.isEmpty
+                            ? null
+                            : (value) {
+                                if (value == null) return;
+                                setState(() {
+                                  _coupleIdController.text = value;
+                                });
+                              },
                         decoration: vendorBookingFieldDecoration(
-                          hintText: '5',
+                          hintText: coupleOptions.isEmpty
+                              ? 'No couples available'
+                              : 'Choose a couple',
                           icon: Icons.group_rounded,
                         ),
                         validator: (value) {
-                          if (isEditing) return null;
                           if (value == null || value.trim().isEmpty) {
-                            return 'Couple ID is required';
+                            return 'Couple is required';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
-                      const VendorBookingFormLabel(text: 'Service type'),
+                      const VendorBookingFormLabel(text: 'Service name'),
                       const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _selectedType,
-                        items: vendorServiceFormOptions
-                            .map(
-                              (option) => DropdownMenuItem<String>(
-                                value: option.value,
-                                child: Text(option.label),
+                      if (_loadingServiceOptions)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFEFDCE0)),
+                          ),
+                          child: const Row(
+                            children: [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setState(() => _selectedType = value);
-                        },
-                        decoration: vendorBookingFieldDecoration(
-                          hintText: 'Choose service type',
-                          icon: Icons.category_rounded,
+                              SizedBox(width: 12),
+                              Text('Loading your services...'),
+                            ],
+                          ),
+                        )
+                      else
+                        DropdownButtonFormField<VendorService>(
+                          value: currentService,
+                          items: _serviceOptions
+                              .map(
+                                (service) => DropdownMenuItem<VendorService>(
+                                  value: service,
+                                  child: Text(
+                                    service.serviceName.isNotEmpty
+                                        ? service.serviceName
+                                        : service.serviceTypeLabel,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          isExpanded: true,
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => _selectedService = value);
+                          },
+                          decoration: vendorBookingFieldDecoration(
+                            hintText: 'Choose a service',
+                            icon: Icons.storefront_rounded,
+                          ),
+                          validator: (value) {
+                            if (value == null) {
+                              return 'Service is required';
+                            }
+                            return null;
+                          },
                         ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Service type is required';
-                          }
-                          return null;
-                        },
-                      ),
                       const SizedBox(height: 16),
                       const VendorBookingFormLabel(text: 'Booking date'),
                       const SizedBox(height: 8),
@@ -275,7 +359,7 @@ class _VendorBookingAddScreenState extends State<VendorBookingAddScreen> {
 
     final draft = VendorBookingDraft(
       coupleId: _coupleIdController.text.trim(),
-      typeService: _selectedType,
+      typeService: _servicePayloadValue(),
       bookingDate: _selectedDate,
       status: _status,
       notes: _notesController.text.trim(),
@@ -313,19 +397,125 @@ class _VendorBookingAddScreenState extends State<VendorBookingAddScreen> {
   }
 
   String _readType(Map<String, dynamic> source) {
-    final value = _readString(source, const [
+    return _serviceOptions.isNotEmpty
+        ? _serviceOptions.first.serviceName
+        : _readString(source, const [
+            'type_service',
+            'service_type',
+            'category',
+          ]);
+  }
+
+  Future<void> _loadServiceOptions() async {
+    try {
+      final services = await VendorServiceManagementRepository.instance
+          .fetchServices();
+      if (!mounted) return;
+      setState(() {
+        _serviceOptions = services;
+        _loadingServiceOptions = false;
+        _selectedService =
+            _selectedService ?? (services.isNotEmpty ? services.first : null);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _serviceOptions = const <VendorService>[];
+        _loadingServiceOptions = false;
+      });
+    }
+  }
+
+  List<_CoupleOption> _coupleOptions(
+    List<Map<String, dynamic>> couples,
+    Map<String, dynamic>? currentBooking,
+  ) {
+    final options = <_CoupleOption>[];
+    final seen = <String>{};
+
+    for (final bookingItem in [
+      ...couples,
+      if (currentBooking != null) currentBooking,
+    ]) {
+      final id = _coupleSelectionId(bookingItem);
+      if (id.isEmpty || !seen.add(id)) continue;
+      options.add(_coupleOptionFromBooking(bookingItem, id));
+    }
+
+    return options;
+  }
+
+  _CoupleOption? _selectedCoupleOption(List<_CoupleOption> options) {
+    final current = _coupleIdController.text.trim();
+    if (current.isNotEmpty) {
+      for (final option in options) {
+        if (option.id == current) return option;
+      }
+    }
+    return options.isNotEmpty ? options.first : null;
+  }
+
+  String _coupleSelectionId(Map<String, dynamic> booking) {
+    final prefersBookingId = _looksLikeBookingRecord(booking);
+    final directId = _firstNonEmpty(
+      prefersBookingId
+          ? [
+              _readString(booking, const ['couple_id', 'customer_id']),
+              _readString(booking, const ['id']),
+            ]
+          : [
+              _readString(booking, const ['id']),
+              _readString(booking, const ['couple_id', 'customer_id']),
+            ],
+    );
+    if (directId.isNotEmpty) return directId;
+
+    final nestedCouple = _readMap(booking, const [
+      'couple',
+      'user',
+      'owner',
+      'host',
+    ]);
+    return _readString(nestedCouple, const ['id']);
+  }
+
+  bool _looksLikeBookingRecord(Map<String, dynamic> booking) {
+    return booking.containsKey('booking_date') ||
+        booking.containsKey('type_service') ||
+        booking.containsKey('booking_status') ||
+        booking.containsKey('notes') ||
+        booking.containsKey('status');
+  }
+
+  VendorService? _serviceFromBooking(Map<String, dynamic>? booking) {
+    if (booking == null) return null;
+    final type = _readString(booking, const [
       'type_service',
       'service_type',
       'category',
     ]);
-    if (value.isEmpty) return vendorServiceFormOptions.first.value;
+    if (type.isEmpty) return null;
 
-    final normalized = value.toLowerCase().replaceAll(' ', '_');
-    final option = vendorServiceFormOptions.firstWhere(
-      (item) => item.value == normalized,
-      orElse: () => vendorServiceFormOptions.first,
-    );
-    return option.value;
+    for (final service in _serviceOptions) {
+      if (service.typeService.trim().toLowerCase() ==
+          type.trim().toLowerCase()) {
+        return service;
+      }
+      if (service.serviceName.trim().toLowerCase() ==
+          type.trim().toLowerCase()) {
+        return service;
+      }
+    }
+
+    return null;
+  }
+
+  String _servicePayloadValue() {
+    final service = _selectedService;
+    if (service == null) return '';
+    return service.typeService.trim().isNotEmpty
+        ? service.typeService.trim()
+        : service.serviceName.trim();
   }
 
   bool _readStatus(Map<String, dynamic> source) {
@@ -341,5 +531,123 @@ class _VendorBookingAddScreenState extends State<VendorBookingAddScreen> {
     return normalized.contains('confirm') ||
         normalized == 'true' ||
         normalized == '1';
+  }
+
+  Map<String, dynamic> _readMap(
+    Map<String, dynamic> source,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = source[key];
+      if (value is Map<String, dynamic>) return value;
+      if (value is Map) {
+        return value.map<String, dynamic>(
+          (entryKey, entryValue) => MapEntry(entryKey.toString(), entryValue),
+        );
+      }
+    }
+    return const <String, dynamic>{};
+  }
+
+  _CoupleOption _coupleOptionFromBooking(
+    Map<String, dynamic> booking,
+    String id,
+  ) {
+    final source = _bookingResourceLocal(booking);
+    final name = _firstNonEmpty([
+      _readString(source, const ['couple_name']),
+      _buildCoupleName(source),
+      _readString(source, const ['display_name']),
+      _readString(source, const ['customer_name', 'client_name', 'title']),
+      'Couple #$id',
+    ]);
+    final email = _readString(source, const ['email', 'couple_email']);
+
+    return _CoupleOption(id: id, name: name, email: email);
+  }
+
+  Map<String, dynamic> _bookingResourceLocal(Map<String, dynamic> booking) {
+    final candidates = [
+      ['data', 'booking', 'resource'],
+      ['data', 'resource'],
+      ['booking', 'resource'],
+      ['resource'],
+      ['data'],
+    ];
+
+    for (final path in candidates) {
+      final value = _readMap(booking, path);
+      if (value.isNotEmpty) return value;
+    }
+
+    return booking;
+  }
+
+  String _buildCoupleName(Map<String, dynamic> source) {
+    final partnerOne = _readString(source, const ['partner_1_name']);
+    final partnerTwo = _readString(source, const ['partner_2_name']);
+    if (partnerOne.isNotEmpty && partnerTwo.isNotEmpty) {
+      return '$partnerOne & $partnerTwo';
+    }
+    return '';
+  }
+
+  String _firstNonEmpty(List<String> values) {
+    for (final value in values) {
+      if (value.trim().isNotEmpty) return value;
+    }
+    return '';
+  }
+}
+
+class _CoupleOption {
+  const _CoupleOption({
+    required this.id,
+    required this.name,
+    required this.email,
+  });
+
+  final String id;
+  final String name;
+  final String email;
+
+  String get compactLabel {
+    if (name.isNotEmpty && email.isNotEmpty) return '$name • $email';
+    if (name.isNotEmpty) return name;
+    if (email.isNotEmpty) return email;
+    return 'Couple';
+  }
+}
+
+class _CoupleOptionTile extends StatelessWidget {
+  const _CoupleOptionTile({required this.option});
+
+  final _CoupleOption option;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            option.name.isNotEmpty ? option.name : 'Couple',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (option.email.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              option.email,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
