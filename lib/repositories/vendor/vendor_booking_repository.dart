@@ -1,4 +1,5 @@
 import 'package:wedplan_mobile/core/network/api_service.dart';
+import 'package:wedplan_mobile/models/vendor/vendor_booking_draft.dart';
 
 class VendorBookingRepository {
   VendorBookingRepository._({ApiService? apiService})
@@ -13,6 +14,39 @@ class VendorBookingRepository {
   }) async {
     final response = await _apiService.vendorBookings();
     return _parseItems(response.data);
+  }
+
+  Future<Map<String, dynamic>?> showBooking(Object id) async {
+    final response = await _apiService.vendorBookingShow(id);
+    final map = _toMap(response.data);
+    final data = _unwrap(map);
+    return data.isEmpty ? null : data;
+  }
+
+  Future<Map<String, dynamic>?> createBooking(VendorBookingDraft draft) async {
+    final response = await _apiService.vendorBookingCreate(
+      draft.toCreateJson(),
+    );
+    final map = _toMap(response.data);
+    final data = _unwrap(map);
+    return data.isEmpty ? null : data;
+  }
+
+  Future<Map<String, dynamic>?> updateBooking(
+    Object id,
+    VendorBookingDraft draft,
+  ) async {
+    final response = await _apiService.vendorBookingUpdate(
+      id,
+      draft.toUpdateJson(),
+    );
+    final map = _toMap(response.data);
+    final data = _unwrap(map);
+    return data.isEmpty ? null : data;
+  }
+
+  Future<void> deleteBooking(Object id) async {
+    await _apiService.vendorBookingDelete(id);
   }
 
   List<Map<String, dynamic>> _parseItems(dynamic data) {

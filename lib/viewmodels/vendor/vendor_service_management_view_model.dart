@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:wedplan_mobile/models/vendor/vendor_service.dart';
+import 'package:wedplan_mobile/models/vendor/vendor_service_draft.dart';
 import 'package:wedplan_mobile/repositories/vendor/vendor_service_management_repository.dart';
 
 class VendorServiceManagementViewModel extends ChangeNotifier {
@@ -14,24 +15,42 @@ class VendorServiceManagementViewModel extends ChangeNotifier {
   bool _busy = false;
   String? _error;
   String _query = '';
+  String _selectedType = 'all';
   List<VendorService> _services = const <VendorService>[];
 
   bool get busy => _busy;
   String? get error => _error;
   String get query => _query;
+  String get selectedType => _selectedType;
   List<VendorService> get allServices => _services;
+
+  List<String> get serviceTypes {
+    final values =
+        _services
+            .map((service) => service.typeService.trim())
+            .where((value) => value.isNotEmpty)
+            .map(_normalizeType)
+            .toSet()
+            .toList()
+          ..sort();
+
+    return values;
+  }
 
   List<VendorService> get visibleServices {
     final normalized = _query.trim().toLowerCase();
-    if (normalized.isEmpty) return _services;
-
     return _services.where((service) {
+      final matchesType =
+          _selectedType == 'all' ||
+          _normalizeType(service.typeService) == _normalizeType(_selectedType);
+      if (!matchesType) return false;
+
+      if (normalized.isEmpty) return true;
+
       return <String>[
         service.serviceName,
         service.typeService,
         service.description,
-        service.vendorBusinessName,
-        service.vendorAddress,
       ].any((value) => value.toLowerCase().contains(normalized));
     }).toList();
   }
@@ -58,10 +77,83 @@ class VendorServiceManagementViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setTypeFilter(String value) {
+    if (_selectedType == value) return;
+    _selectedType = value;
+    notifyListeners();
+  }
+
   void clearQuery() {
     if (_query.isEmpty) return;
     _query = '';
     notifyListeners();
+  }
+
+  void clearFilters() {
+    if (_query.isEmpty && _selectedType == 'all') return;
+    _query = '';
+    _selectedType = 'all';
+    notifyListeners();
+  }
+
+  Future<VendorService?> showService(Object id) async {
+    try {
+      return await _repository.showService(id);
+    } on DioException catch (error) {
+      _error = _message(error);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<VendorService?> createService(VendorServiceDraft draft) async {
+    _setBusy(true);
+    _error = null;
+
+    try {
+      final service = await _repository.createService(draft);
+      await load(forceRefresh: true);
+      return service;
+    } on DioException catch (error) {
+      _error = _message(error);
+      rethrow;
+    } finally {
+      _setBusy(false);
+    }
+  }
+
+  Future<VendorService?> updateService(
+    Object id,
+    VendorServiceDraft draft,
+  ) async {
+    _setBusy(true);
+    _error = null;
+
+    try {
+      final service = await _repository.updateService(id, draft);
+      await load(forceRefresh: true);
+      return service;
+    } on DioException catch (error) {
+      _error = _message(error);
+      rethrow;
+    } finally {
+      _setBusy(false);
+    }
+  }
+
+  Future<void> deleteService(Object id) async {
+    _setBusy(true);
+    _error = null;
+
+    try {
+      await _repository.deleteService(id);
+      await load(forceRefresh: true);
+    } on DioException catch (error) {
+      _error = _message(error);
+      rethrow;
+    } finally {
+      _setBusy(false);
+    }
   }
 
   void _setBusy(bool value) {
@@ -81,5 +173,27 @@ class VendorServiceManagementViewModel extends ChangeNotifier {
       if (message is String && message.isNotEmpty) return message;
     }
     return error.message ?? 'Something went wrong.';
+  }
+
+  String _normalizeType(String value) {
+    final normalized = value.trim().toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9]+'),
+      '_',
+    );
+
+    if (normalized.contains('makeup')) return 'makeup_artist';
+    if (normalized.contains('planner')) return 'wedding_planner';
+    if (normalized.contains('bridal')) return 'bridal_wear';
+    if (normalized.contains('decor') || normalized.contains('styling')) {
+      return 'decor_styling';
+    }
+    if (normalized.contains('photo')) return 'photography';
+    if (normalized.contains('transport')) return 'transportation';
+    if (normalized.contains('entertain')) return 'entertainment';
+    if (normalized.contains('cater')) return 'catering';
+    if (normalized.contains('venue')) return 'venue';
+    if (normalized.contains('other')) return 'other';
+
+    return normalized;
   }
 }

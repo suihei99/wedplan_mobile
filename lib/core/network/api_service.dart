@@ -147,7 +147,7 @@ class ApiService {
     return get<dynamic>(ApiRouter.vendorServices);
   }
 
-  Future<Response<dynamic>> vendorServiceCreate(Map<String, dynamic> data) {
+  Future<Response<dynamic>> vendorServiceCreate(dynamic data) {
     return post<dynamic>(ApiRouter.vendorServices, data: data);
   }
 
@@ -155,10 +155,16 @@ class ApiService {
     return get<dynamic>(ApiRouter.vendorServiceById(id));
   }
 
-  Future<Response<dynamic>> vendorServiceUpdate(
-    Object id,
-    Map<String, dynamic> data,
-  ) {
+  Future<Response<dynamic>> vendorServiceUpdate(Object id, dynamic data) {
+    if (data is FormData) {
+      final hasMethodField = data.fields.any((field) => field.key == '_method');
+      if (!hasMethodField) {
+        data.fields.add(const MapEntry('_method', 'PUT'));
+      }
+
+      return post<dynamic>(ApiRouter.vendorServiceById(id), data: data);
+    }
+
     return put<dynamic>(ApiRouter.vendorServiceById(id), data: data);
   }
 
@@ -170,8 +176,23 @@ class ApiService {
     return get<dynamic>(ApiRouter.vendorBookings);
   }
 
+  Future<Response<dynamic>> vendorBookingCreate(Map<String, dynamic> data) {
+    return post<dynamic>(ApiRouter.vendorBookings, data: data);
+  }
+
   Future<Response<dynamic>> vendorBookingShow(Object id) {
     return get<dynamic>(ApiRouter.vendorBookingById(id));
+  }
+
+  Future<Response<dynamic>> vendorBookingUpdate(
+    Object id,
+    Map<String, dynamic> data,
+  ) {
+    return put<dynamic>(ApiRouter.vendorBookingById(id), data: data);
+  }
+
+  Future<Response<dynamic>> vendorBookingDelete(Object id) {
+    return delete<dynamic>(ApiRouter.vendorBookingById(id));
   }
 
   Future<Response<dynamic>> vendorNotifications() {

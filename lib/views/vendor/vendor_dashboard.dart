@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -169,7 +170,7 @@ const List<_TabMeta> _pageMeta = <_TabMeta>[
   ),
 ];
 
-class _VendorDashboardHome extends StatelessWidget {
+class _VendorDashboardHome extends StatefulWidget {
   const _VendorDashboardHome({
     required this.vm,
     required this.onOpenServiceTab,
@@ -185,7 +186,31 @@ class _VendorDashboardHome extends StatelessWidget {
   final VoidCallback onOpenNotifications;
 
   @override
+  State<_VendorDashboardHome> createState() => _VendorDashboardHomeState();
+}
+
+class _VendorDashboardHomeState extends State<_VendorDashboardHome> {
+  late DateTime _focusedMonth;
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final today = _dateOnly(DateTime.now());
+    _focusedMonth = DateTime(today.year, today.month, 1);
+    _selectedDate = today;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final vm = widget.vm;
+    final bookingDates = vm.bookingDates;
+    final bookedDaysThisMonth = bookingDates.where(
+      (date) =>
+          date.year == _focusedMonth.year && date.month == _focusedMonth.month,
+    );
+    final selectedIsBooked = bookingDates.contains(_selectedDate);
+
     return RefreshIndicator(
       color: welcomePrimaryDeepColor,
       onRefresh: () => vm.load(forceRefresh: true),
@@ -193,7 +218,16 @@ class _VendorDashboardHome extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
         children: [
-          _VendorHeroCard(vm: vm, onOpenNotifications: onOpenNotifications),
+          _LiveCalendarCard(
+            focusedMonth: _focusedMonth,
+            selectedDate: _selectedDate,
+            bookedDates: bookingDates,
+            bookedDaysThisMonth: bookedDaysThisMonth.length,
+            selectedIsBooked: selectedIsBooked,
+            onPreviousMonth: _canGoPreviousMonth() ? _previousMonth : null,
+            onNextMonth: _nextMonth,
+            onDateSelected: _selectDate,
+          ),
           const SizedBox(height: 14),
           _VendorMetricGrid(vm: vm),
           const SizedBox(height: 14),
@@ -206,22 +240,22 @@ class _VendorDashboardHome extends StatelessWidget {
                 _ActionPill(
                   icon: Icons.storefront_rounded,
                   label: 'Services',
-                  onTap: onOpenServiceTab,
+                  onTap: widget.onOpenServiceTab,
                 ),
                 _ActionPill(
                   icon: Icons.event_available_rounded,
                   label: 'Bookings',
-                  onTap: onOpenBookingTab,
+                  onTap: widget.onOpenBookingTab,
                 ),
                 _ActionPill(
                   icon: Icons.person_rounded,
                   label: 'Profile',
-                  onTap: onOpenMeTab,
+                  onTap: widget.onOpenMeTab,
                 ),
                 _ActionPill(
                   icon: Icons.notifications_none_rounded,
                   label: 'Inbox',
-                  onTap: onOpenNotifications,
+                  onTap: widget.onOpenNotifications,
                 ),
               ],
             ),
@@ -234,7 +268,7 @@ class _VendorDashboardHome extends StatelessWidget {
               style: GoogleFonts.manrope(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFFE04F6D),
+                color: welcomePrimaryDeepColor,
               ),
             ),
             child: _DashboardItemList(
@@ -251,7 +285,7 @@ class _VendorDashboardHome extends StatelessWidget {
               style: GoogleFonts.manrope(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFFE04F6D),
+                color: welcomePrimaryDeepColor,
               ),
             ),
             child: _DashboardItemList(
@@ -266,6 +300,404 @@ class _VendorDashboardHome extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+
+  bool _canGoPreviousMonth() {
+    final now = DateTime.now();
+    final currentMonth = DateTime(now.year, now.month, 1);
+    return _focusedMonth.isAfter(currentMonth);
+  }
+
+  void _previousMonth() {
+    setState(() {
+      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+    });
+  }
+
+  void _nextMonth() {
+    setState(() {
+      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
+    });
+  }
+
+  void _selectDate(DateTime date) {
+    setState(() {
+      _selectedDate = _dateOnly(date);
+      _focusedMonth = DateTime(date.year, date.month, 1);
+    });
+  }
+
+  DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+}
+
+class _LiveCalendarCard extends StatelessWidget {
+  const _LiveCalendarCard({
+    required this.focusedMonth,
+    required this.selectedDate,
+    required this.bookedDates,
+    required this.bookedDaysThisMonth,
+    required this.selectedIsBooked,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
+    required this.onDateSelected,
+  });
+
+  final DateTime focusedMonth;
+  final DateTime selectedDate;
+  final List<DateTime> bookedDates;
+  final int bookedDaysThisMonth;
+  final bool selectedIsBooked;
+  final VoidCallback? onPreviousMonth;
+  final VoidCallback onNextMonth;
+  final ValueChanged<DateTime> onDateSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final monthStart = DateTime(focusedMonth.year, focusedMonth.month, 1);
+    final monthEnd = DateTime(focusedMonth.year, focusedMonth.month + 1, 0);
+    final firstGridDay = monthStart.subtract(
+      Duration(days: monthStart.weekday - 1),
+    );
+    final totalCells = monthEnd.day + (monthStart.weekday - 1);
+    final gridCells = ((totalCells / 7).ceil()) * 7;
+    final selectedLabel = DateFormat('EEE, d MMM yyyy').format(selectedDate);
+    final monthLabel = DateFormat('MMMM yyyy').format(focusedMonth);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFEFDCE0)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFB96B7D).withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Live Calendar',
+                      style: GoogleFonts.manrope(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: welcomeTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Tap a date to inspect bookings and availability.',
+                      style: GoogleFonts.manrope(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF7C6B71),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _MonthIconButton(
+                icon: Icons.chevron_left_rounded,
+                onTap: onPreviousMonth,
+              ),
+              const SizedBox(width: 8),
+              _MonthLabelPill(label: monthLabel),
+              const SizedBox(width: 8),
+              _MonthIconButton(
+                icon: Icons.chevron_right_rounded,
+                onTap: onNextMonth,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              _WeekdayLabel('M'),
+              _WeekdayLabel('T'),
+              _WeekdayLabel('W'),
+              _WeekdayLabel('T'),
+              _WeekdayLabel('F'),
+              _WeekdayLabel('S'),
+              _WeekdayLabel('S'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: gridCells,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              mainAxisExtent: 40,
+            ),
+            itemBuilder: (context, index) {
+              final day = firstGridDay.add(Duration(days: index));
+              final isCurrentMonth =
+                  day.month == focusedMonth.month &&
+                  day.year == focusedMonth.year;
+              final dayOnly = DateTime(day.year, day.month, day.day);
+              final isBooked = bookedDates.contains(dayOnly);
+              final isSelected = selectedDate == dayOnly;
+              final isToday = _sameDay(dayOnly, DateTime.now());
+
+              return InkWell(
+                onTap: isCurrentMonth ? () => onDateSelected(dayOnly) : null,
+                borderRadius: BorderRadius.circular(14),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: !isCurrentMonth
+                        ? const Color(0xFFF8EEF0).withValues(alpha: 0.45)
+                        : isSelected
+                        ? welcomePrimaryDeepColor
+                        : isBooked
+                        ? const Color(0xFFFCE0E5)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSelected
+                          ? welcomePrimaryDeepColor
+                          : isBooked
+                          ? const Color(0xFFE04F6D)
+                          : isToday
+                          ? const Color(0xFFE04F6D)
+                          : const Color(0xFFEFDCE0),
+                    ),
+                  ),
+                  child: Text(
+                    '${day.day}',
+                    style: GoogleFonts.manrope(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: !isCurrentMonth
+                          ? const Color(0xFFB9A7AE)
+                          : isSelected
+                          ? Colors.white
+                          : isBooked
+                          ? const Color(0xFFE04F6D)
+                          : welcomeTextColor,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _LegendDot(color: welcomePrimaryDeepColor, label: 'Selected'),
+              const SizedBox(width: 12),
+              _LegendDot(color: const Color(0xFFE04F6D), label: 'Booked'),
+              const SizedBox(width: 12),
+              _LegendDot(color: const Color(0xFFEFDCE0), label: 'Available'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAF4F5),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFEFDCE0)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: selectedIsBooked
+                        ? const Color(0xFFE04F6D)
+                        : const Color(0xFFFCE0E5),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    selectedIsBooked
+                        ? Icons.event_available_rounded
+                        : Icons.calendar_month_rounded,
+                    color: selectedIsBooked
+                        ? Colors.white
+                        : welcomePrimaryDeepColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selectedLabel,
+                        style: GoogleFonts.manrope(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: welcomeTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        selectedIsBooked
+                            ? 'This date has a booking in your schedule.'
+                            : 'No booking found for this date yet.',
+                        style: GoogleFonts.manrope(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF7C6B71),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '$bookedDaysThisMonth',
+                      style: GoogleFonts.manrope(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: welcomePrimaryDeepColor,
+                      ),
+                    ),
+                    Text(
+                      'booked',
+                      style: GoogleFonts.manrope(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF7C6B71),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _sameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+}
+
+class _MonthLabelPill extends StatelessWidget {
+  const _MonthLabelPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFCE0E5),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.manrope(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: welcomePrimaryDeepColor,
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthIconButton extends StatelessWidget {
+  const _MonthIconButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: onTap,
+      radius: 18,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBFC),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFEEDCE1)),
+        ),
+        child: Icon(icon, color: welcomePrimaryDeepColor, size: 20),
+      ),
+    );
+  }
+}
+
+class _WeekdayLabel extends StatelessWidget {
+  const _WeekdayLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 32,
+      child: Center(
+        child: Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF7C6B71),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendDot extends StatelessWidget {
+  const _LegendDot({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: GoogleFonts.manrope(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF7C6B71),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -447,7 +879,7 @@ class _VendorMetricGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.42,
+      childAspectRatio: 1.18,
       children: [
         _MetricCard(
           label: 'Services',

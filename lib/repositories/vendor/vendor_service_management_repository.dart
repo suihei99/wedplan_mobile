@@ -1,5 +1,6 @@
 import 'package:wedplan_mobile/core/network/api_service.dart';
 import 'package:wedplan_mobile/models/vendor/vendor_service.dart';
+import 'package:wedplan_mobile/models/vendor/vendor_service_draft.dart';
 
 class VendorServiceManagementRepository {
   VendorServiceManagementRepository._({ApiService? apiService})
@@ -13,6 +14,39 @@ class VendorServiceManagementRepository {
   Future<List<VendorService>> fetchServices({bool forceRefresh = false}) async {
     final response = await _apiService.vendorServices();
     return _parseServices(response.data);
+  }
+
+  Future<VendorService?> showService(Object id) async {
+    final response = await _apiService.vendorServiceShow(id);
+    final map = _toMap(response.data);
+    if (map.isEmpty) return null;
+    return VendorService.fromJson(map);
+  }
+
+  Future<VendorService?> createService(VendorServiceDraft draft) async {
+    final response = await _apiService.vendorServiceCreate(
+      await draft.toFormData(),
+    );
+    final map = _toMap(response.data);
+    if (map.isEmpty) return null;
+    return VendorService.fromJson(map);
+  }
+
+  Future<VendorService?> updateService(
+    Object id,
+    VendorServiceDraft draft,
+  ) async {
+    final response = await _apiService.vendorServiceUpdate(
+      id,
+      await draft.toFormData(),
+    );
+    final map = _toMap(response.data);
+    if (map.isEmpty) return null;
+    return VendorService.fromJson(map);
+  }
+
+  Future<void> deleteService(Object id) async {
+    await _apiService.vendorServiceDelete(id);
   }
 
   List<VendorService> _parseServices(dynamic data) {

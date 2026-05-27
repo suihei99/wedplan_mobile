@@ -108,6 +108,17 @@ class VendorDashboardViewModel extends ChangeNotifier {
     const ['featured_services', 'services', 'top_services'],
   );
 
+  List<DateTime> get bookingDates => _readDateList([
+    _dashboard['booking_dates'],
+    _dashboard['upcoming_booking_dates'],
+    _dashboard['calendar_dates'],
+    for (final item in upcomingBookings) ...[
+      item['booking_date'],
+      item['date'],
+      item['scheduled_at'],
+    ],
+  ]);
+
   Future<void> load({bool forceRefresh = false}) async {
     _setBusy(true);
     _error = null;
@@ -194,4 +205,51 @@ class VendorDashboardViewModel extends ChangeNotifier {
     }
     return const <Map<String, dynamic>>[];
   }
+
+  List<DateTime> _readDateList(Iterable<dynamic> values) {
+    final dates = <DateTime>{};
+
+    for (final value in values) {
+      if (value == null) continue;
+
+      if (value is List) {
+        for (final item in value) {
+          final parsed = _parseDate(item);
+          if (parsed != null) dates.add(_dateOnly(parsed));
+        }
+        continue;
+      }
+
+      final parsed = _parseDate(value);
+      if (parsed != null) dates.add(_dateOnly(parsed));
+    }
+
+    final sorted = dates.toList()..sort((a, b) => a.compareTo(b));
+    return sorted;
+  }
+
+  DateTime? _parseDate(dynamic value) {
+    if (value is DateTime) return value;
+    if (value == null) return null;
+
+    final text = value.toString().trim();
+    if (text.isEmpty || text == 'null') return null;
+
+    final parsed = DateTime.tryParse(text);
+    if (parsed != null) return parsed;
+
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(text);
+    if (match != null) {
+      return DateTime(
+        int.parse(match.group(1)!),
+        int.parse(match.group(2)!),
+        int.parse(match.group(3)!),
+      );
+    }
+
+    return null;
+  }
+
+  DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
 }
