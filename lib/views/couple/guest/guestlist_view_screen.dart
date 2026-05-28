@@ -224,11 +224,11 @@ class GuestListViewScreen extends StatelessWidget {
         : 'https://wedplan.projectse.io/guest/qr/$inviteCode';
     return '''Hi ${guest.name},
 
-You are invited to $coupleName's wedding.
+  You are invited to $coupleName's wedding.
 Invite code: $inviteCode
 
 View your QR code: $qrLink
-Install our mobile app to check-in: https://wedplan.projectse.io/mobile-app
+  Download the mobile app here: https://wedplan.projectse.io
 
 Please reply with your RSVP. Thank you.''';
   }
