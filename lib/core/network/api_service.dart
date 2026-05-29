@@ -136,6 +136,17 @@ class ApiService {
   }
 
   Future<Response<dynamic>> updateSettings(dynamic data) {
+    // Some servers reject PUT with multipart/form-data. If `data` is FormData,
+    // send as POST and include `_method=PUT` to emulate a PUT request server-side.
+    if (data is FormData) {
+      final hasMethodField = data.fields.any((field) => field.key == '_method');
+      if (!hasMethodField) {
+        data.fields.add(const MapEntry('_method', 'PUT'));
+      }
+
+      return post<dynamic>(ApiRouter.settings, data: data);
+    }
+
     return put<dynamic>(ApiRouter.settings, data: data);
   }
 

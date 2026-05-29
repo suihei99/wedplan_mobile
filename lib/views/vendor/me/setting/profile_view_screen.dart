@@ -300,9 +300,18 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
         businessDocumentPath: _documentPath,
       );
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(vm.success ?? 'Profile updated')));
+      // Refresh controllers from updated vm values to avoid stale UI
+      setState(() {
+        _contactNumberController.text = vm.contactNumber;
+        _addressController.text = vm.address;
+        _businessTypeValue = _initialBusinessTypeValue(vm.businessType);
+        // Reset labels if uploaded
+        if (vm.hasProfilePhoto) _profilePhotoLabel = null;
+        if (vm.hasBusinessDocument) _documentLabel = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(vm.success ?? 'Profile updated')),
+      );
       Navigator.of(context).maybePop();
     } catch (_) {
       if (!context.mounted) return;

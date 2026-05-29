@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:wedplan_mobile/models/couple/me_profile.dart';
 import 'package:intl/intl.dart';
 import 'package:wedplan_mobile/repositories/couple/me_repository.dart';
+import 'package:wedplan_mobile/core/services/app_session_cache.dart';
 
 class MeViewModel extends ChangeNotifier {
   bool _busy = false;
@@ -97,6 +98,15 @@ class MeViewModel extends ChangeNotifier {
       final refreshedProfile = await MeRepository.instance.loadProfile(
         forceRefresh: true,
       );
+
+      // Ensure global cache reflects refreshed values so other screens pick them up
+      try {
+        // Importing AppSessionCache here is fine; update the global cached maps
+        // using the raw maps produced by the profile parser.
+        final cache = AppSessionCache.instance;
+        cache.coupleDetail = refreshedProfile.rawCouple;
+        cache.dashboard = refreshedProfile.rawDashboard;
+      } catch (_) {}
 
       if (!_matchesCoupleProfile(
         refreshedProfile,

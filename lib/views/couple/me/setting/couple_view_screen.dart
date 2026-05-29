@@ -333,6 +333,18 @@ class _CoupleViewScreenState extends State<CoupleViewScreen> {
         totalBudgetLimit: _budgetController.text,
       );
       if (!context.mounted) return;
+      // Refresh local controllers from updated profile to avoid stale display
+      final updated = vm.profile;
+      if (updated != null) {
+        _partnerOneController.text = updated.partner1Name;
+        _partnerTwoController.text = updated.partner2Name;
+        _weddingDateController.text = updated.weddingDate;
+        _weddingTimeController.text = updated.weddingTime;
+        _weddingVenueController.text = updated.weddingVenue;
+        _budgetController.text = (updated.totalBudgetLimit > 0)
+            ? updated.totalBudgetLimit.toStringAsFixed(0)
+            : '';
+      }
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(vm.success ?? 'Profile updated')));

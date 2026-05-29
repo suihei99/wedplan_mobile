@@ -207,7 +207,19 @@ class VendorMeViewModel extends ChangeNotifier {
       final response = await _repository.updateProfile(
         FormData.fromMap(payload),
       );
+      // Log response and reload profile to help debug stale/format issues
+      try {
+        // response is a Map<String, dynamic>
+        // ignore: avoid_print
+        print('Vendor updateProfile response: $response');
+      } catch (_) {}
+
       _profile = await _repository.loadProfile(forceRefresh: true);
+      try {
+        // ignore: avoid_print
+        print('Vendor reloaded profile after update: $_profile');
+      } catch (_) {}
+
       _success = _messageFromResponse(response) ?? 'Profile updated.';
       notifyListeners();
     } on DioException catch (error) {
