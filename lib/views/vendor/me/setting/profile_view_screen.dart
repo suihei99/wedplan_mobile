@@ -309,9 +309,9 @@ class _ProfileViewScreenState extends State<ProfileViewScreen> {
         if (vm.hasProfilePhoto) _profilePhotoLabel = null;
         if (vm.hasBusinessDocument) _documentLabel = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(vm.success ?? 'Profile updated')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(vm.success ?? 'Profile updated')));
       Navigator.of(context).maybePop();
     } catch (_) {
       if (!context.mounted) return;
