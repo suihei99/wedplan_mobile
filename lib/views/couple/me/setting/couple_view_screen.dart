@@ -304,6 +304,25 @@ class _CoupleViewScreenState extends State<CoupleViewScreen> {
   Future<void> _save(BuildContext context, MeViewModel vm) async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Normalize wedding time to 24-hour 'HH:mm' format expected by the API
+    final rawTime = _weddingTimeController.text.trim();
+    if (rawTime.isNotEmpty) {
+      DateTime? parsed;
+      try {
+        parsed = DateFormat('HH:mm').parse(rawTime);
+      } catch (_) {
+        try {
+          parsed = DateFormat('h:mm a').parse(rawTime);
+        } catch (_) {
+          parsed = null;
+        }
+      }
+
+      if (parsed != null) {
+        _weddingTimeController.text = DateFormat('HH:mm').format(parsed);
+      }
+    }
+
     try {
       await vm.updateCoupleProfile(
         partner1Name: _partnerOneController.text,

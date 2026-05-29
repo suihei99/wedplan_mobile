@@ -264,11 +264,31 @@ Successful response (201):
       "partner_1_name": "Alya",
       "partner_2_name": "Haziq",
       "wedding_date": "2026-12-31",
-      "wedding_time": "19:30",
-      "wedding_venue": "Kuala Lumpur",
-      "total_budget_limit": 50000,
-      "created_at": "2026-05-18T10:00:00.000000Z",
-      "updated_at": "2026-05-18T10:00:00.000000Z"
+Note: Booking responses include the related couple user and their profile data when available. The returned `data` object may include a nested `couple` user object (with `id` and `email`) and a nested `couple` profile object containing partner names. Example:
+
+```json
+{
+  "message": "Booking created successfully.",
+  "data": {
+    "id": 1,
+    "couple_id": 5,
+    "couple_name": "Alya & Haziq",
+    "couple_email": "couple@example.com",
+    "type_service": "photography",
+    "booking_date": "2026-09-10",
+    "status": true,
+    "notes": "Morning session",
+    "created_at": "2026-05-18T10:00:00.000000Z",
+    "updated_at": "2026-05-18T10:00:00.000000Z",
+    "couple": {
+      "id": 5,
+      "email": "couple@example.com",
+      "couple": {
+        "id": 2,
+        "partner_1_name": "Alya",
+        "partner_2_name": "Haziq",
+        "display_name": "Alya & Haziq"
+      }
     }
   }
 }
@@ -408,19 +428,52 @@ These endpoints are available to all authenticated users (couple, vendor, admin)
 
 Requires authentication.
 
+Returns the authenticated user plus the related profile record when available. Couples receive a nested `couple` object and vendors receive a nested `vendor` object.
+
 Successful response (200):
 
 ```json
 {
   "data": {
     "id": 1,
+    "email": "couple@example.com",
+    "role": "couple",
+    "profile_photo_path": null,
+    "profile_photo_url": null,
+    "is_active": true,
+    "couple": {
+      "id": 1,
+      "partner_1_name": "Alya",
+      "partner_2_name": "Haziq",
+      "wedding_date": "2026-12-31",
+      "wedding_time": "19:30",
+      "wedding_venue": "Kuala Lumpur",
+      "total_budget_limit": 50000,
+      "display_name": "Alya & Haziq"
+    }
+  }
+}
+```
+
+Vendor accounts return the same user object with a nested `vendor` profile instead:
+
+```json
+{
+  "data": {
+    "id": 2,
     "email": "vendor@example.com",
     "role": "vendor",
     "profile_photo_path": "profile-photos/avatar.jpg",
     "profile_photo_url": "https://wedplan.projectse.io/storage/profile-photos/avatar.jpg",
     "is_active": true,
-    "created_at": "2026-05-18T10:00:00.000000Z",
-    "updated_at": "2026-05-18T10:00:00.000000Z"
+    "vendor": {
+      "id": 1,
+      "business_name": "Photography Plus",
+      "business_type": "photography",
+      "contact_number": "+60123456789",
+      "address": "Kuala Lumpur, Malaysia",
+      "status": "approved"
+    }
   }
 }
 ```
@@ -431,6 +484,8 @@ Successful response (200):
 
 Requires authentication.
 
+This is the single settings endpoint for both couple and vendor users. It updates user-level fields for everyone, and role-specific profile fields for the authenticated user’s role.
+
 Request body:
 
 ```json
@@ -440,17 +495,31 @@ Request body:
   "current_password": "current-password",
   "password": "new-password123",
   "password_confirmation": "new-password123",
-  "profile_photo": "multipart file"
+  "profile_photo": "multipart file",
+  "partner_1_name": "Alya",
+  "partner_2_name": "Haziq",
+  "wedding_date": "2026-12-31",
+  "wedding_time": "19:30",
+  "wedding_venue": "Kuala Lumpur",
+  "total_budget_limit": 50000,
+  "business_name": "Photography Plus",
+  "business_type": "photography",
+  "contact_number": "+60123456789",
+  "address": "Kuala Lumpur, Malaysia",
+  "business_documents": "multipart file"
 }
 ```
 
 Notes:
 
 - `device_token` stores the mobile push token for the authenticated user and is used for push notification delivery.
-- `profile_photo` is only accepted for vendor accounts.
+- Couple accounts can update `partner_1_name`, `partner_2_name`, `wedding_date`, `wedding_time`, `wedding_venue`, and `total_budget_limit`.
+- Vendor accounts can update `business_name`, `business_type`, `contact_number`, and `address`.
+- `profile_photo` and `business_documents` are only accepted for vendor accounts.
 - `device_token` is optional and can be used for push notification registration.
 - To change the password, send `current_password`, `password`, and `password_confirmation` together.
 - The uploaded profile photo is stored on the public disk under `profile-photos/`.
+- Vendor documents are stored on the public disk under `vendor-documents/`.
 
 Successful response (200):
 
@@ -459,16 +528,26 @@ Successful response (200):
   "message": "Settings updated successfully.",
   "data": {
     "id": 1,
-    "email": "new-email@example.com",
-    "role": "vendor",
-    "profile_photo_path": "profile-photos/avatar.jpg",
-    "profile_photo_url": "https://wedplan.projectse.io/storage/profile-photos/avatar.jpg",
+    "email": "couple@example.com",
+    "role": "couple",
+    "profile_photo_path": null,
+    "profile_photo_url": null,
     "is_active": true,
-    "created_at": "2026-05-18T10:00:00.000000Z",
-    "updated_at": "2026-05-18T10:05:00.000000Z"
+    "couple": {
+      "id": 1,
+      "partner_1_name": "Alya",
+      "partner_2_name": "Haziq",
+      "wedding_date": "2026-12-31",
+      "wedding_time": "19:30",
+      "wedding_venue": "Kuala Lumpur",
+      "total_budget_limit": 50000,
+      "display_name": "Alya & Haziq"
+    }
   }
 }
 ```
+
+For vendor updates, the same response includes the nested `vendor` profile instead of `couple`.
 
 Note: The `device_token` field is stored on the authenticated user but is not returned in the `data` payload.
 
@@ -1197,7 +1276,32 @@ Successful response (200):
 
 ### Bookings
 
-The current backend does not expose a dedicated vendor couples endpoint. The Flutter app keeps the booking add form aligned with the existing booking resources and still submits only `couple_id` when saving.
+Before creating a booking from Flutter, call the vendor couples endpoint to load the couple list and let the vendor pick a couple account by `id`.
+
+### Vendor Couples
+
+`GET /api/v1/vendor/couples`
+
+Requires authentication and `role:vendor`.
+
+Successful response (200):
+
+```json
+{
+  "data": [
+    {
+      "id": 5,
+      "email": "couple@example.com",
+      "couple_id": 2,
+      "couple_name": "Alya & Haziq",
+      "partner_1_name": "Alya",
+      "partner_2_name": "Haziq"
+    }
+  ]
+}
+```
+
+Use `data[].id` as the `couple_id` value when creating a booking.
 
 Get all vendor bookings:
 
@@ -1211,6 +1315,8 @@ Successful response (200):
     {
       "id": 1,
       "couple_id": 5,
+      "couple_name": "Alya & Haziq",
+      "couple_email": "couple@example.com",
       "type_service": "photography",
       "booking_date": "2026-09-10",
       "status": true,
@@ -1238,9 +1344,9 @@ Request body:
 }
 ```
 
-Note: `status: true` means confirmed, `status: false` means pending.
+Note: `status: true` means confirmed, `status: false` means pending
 
-Important: the API only needs `couple_id` in the request body. The backend stores that ID in the booking record. Flutter should not call a nonexistent vendor couples route.
+Important: the API only needs `couple_id` in the request body. The backend stores that ID in the booking record, then the current `BookingResource` loads the related couple user and couple profile from the booking relation so the response can return `couple_name` and `couple_email` for Flutter.
 
 Successful response (201):
 
@@ -1250,22 +1356,14 @@ Successful response (201):
   "data": {
     "id": 1,
     "couple_id": 5,
+    "couple_name": "Alya & Haziq",
+    "couple_email": "couple@example.com",
     "type_service": "photography",
     "booking_date": "2026-09-10",
     "status": true,
     "notes": "Morning session",
     "created_at": "2026-05-18T10:00:00.000000Z",
-    "updated_at": "2026-05-18T10:00:00.000000Z",
-    "couple": {
-      "id": 5,
-      "email": "couple@example.com",
-      "couple": {
-        "id": 2,
-        "partner_1_name": "Alya",
-        "partner_2_name": "Haziq",
-        "display_name": "Alya & Haziq"
-      }
-    }
+    "updated_at": "2026-05-18T10:00:00.000000Z"
   }
 }
 ```
@@ -1273,6 +1371,8 @@ Successful response (201):
 Get specific booking:
 
 `GET /api/v1/vendor/bookings/{booking}`
+
+Successful response (200) follows the same booking resource shape as the list and store endpoints, including `couple_id`, `couple_name`, and `couple_email`.
 
 Update booking:
 
@@ -1285,41 +1385,6 @@ Request body:
   "booking_date": "2026-09-11",
   "status": true,
   "notes": "Updated notes"
-}
-```
-
-Notes:
-
-- The mobile app currently updates `booking_date`, `status`, and `notes`.
-- `status: true` means confirmed, `status: false` means pending.
-- The API may return the updated booking together with related couple resource data when available, including the couple email and nested profile display name.
-- The booking form can show the couple label from that nested resource data, but it still submits `couple_id` when saving.
-
-Successful response (200):
-
-```json
-{
-  "message": "Booking updated successfully.",
-  "data": {
-    "id": 1,
-    "couple_id": 5,
-    "type_service": "photography",
-    "booking_date": "2026-09-11",
-    "status": true,
-    "notes": "Updated notes",
-    "created_at": "2026-05-18T10:00:00.000000Z",
-    "updated_at": "2026-05-18T10:05:00.000000Z",
-    "couple": {
-      "id": 5,
-      "email": "couple@example.com",
-      "couple": {
-        "id": 2,
-        "partner_1_name": "Alya",
-        "partner_2_name": "Haziq",
-        "display_name": "Alya & Haziq"
-      }
-    }
-  }
 }
 ```
 
@@ -1482,11 +1547,11 @@ Successful response (200):
 - Vendor service types are TitleCase values from `Venue`, `Catering`, `Photography`, `Makeup Artist`, `Wedding Planner`, `Bridal Wear`, `Decor & Styling`, `Entertainment`, `Transportation`, and `Other`.
 - Booking `status` is a boolean in the API: `true` means confirmed and `false` means pending.
 - Notification lists are paginated and return `user_id`, `title`, `message`, `is_read`, `created_at`, and `updated_at`.
-- Notification lists are paginated for both vendor and couple APIs.
+- Notification lists are paginated and return `user_id`, `title`, `message`, `is_read`, `created_at`, and `updated_at` for both vendor and couple APIs.
 - `device_token` is accepted by `PUT /api/v1/settings` and stored on the authenticated user for push notification delivery.
 
-- Booking forms should submit `couple_id` and can display couple name/email only when the existing booking payload already includes nested couple data.
-- There is no dedicated `GET /api/v1/vendor/couples` route in the current backend.
+- Booking objects include the related `couple` user (containing `id` and `email`) and the nested `couple` profile (containing `partner_1_name`, `partner_2_name`, and `display_name`) when available. Mobile clients can read the couple's `email` and profile names directly from the booking payload.
+- Booking objects also expose flattened `couple_name` and `couple_email` fields for mobile clients that want an easier response shape.
 
 ### Example Error Response (404)
 

@@ -112,6 +112,10 @@ class CoupleMeProfile {
     final selectedProfile = _readMap(settingsData, const ['user', 'profile']);
     final coupleData = _unwrapCouple(couple);
     final dashboardData = _readMap(dashboard, const ['data']);
+    final summaryData = _readMap(dashboardData, const ['summary']);
+    final statsData = _readMap(dashboardData, const ['stats']);
+    final guestsSummaryData = _readMap(dashboardData, const ['guests_summary']);
+    final budgetData = _readMap(dashboardData, const ['budget']);
 
     final profile = selectedProfile.isNotEmpty ? selectedProfile : settingsData;
 
@@ -170,36 +174,74 @@ class CoupleMeProfile {
       totalBudgetLimit: _firstDouble([
         coupleData['total_budget_limit'],
         dashboardData['total_budget'],
+        dashboardData['total_budget_limit'],
         profile['total_budget_limit'],
+        summaryData['total_budget'],
+        summaryData['budget_limit'],
+        budgetData['total_budget_limit'],
+        budgetData['effective_budget_limit'],
       ]),
       spent: _firstDouble([
         dashboardData['spent'],
         dashboardData['total_spent'],
         dashboardData['total_expenses'],
+        summaryData['spent'],
+        summaryData['spent_amount'],
+        budgetData['total_spent'],
       ]),
       remainingBudget: _firstDouble([
         dashboardData['remaining_budget'],
         dashboardData['remaining'],
+        summaryData['remaining'],
+        budgetData['remaining'],
+        budgetData['remaining_budget'],
       ]),
       guestCount: _firstInt([
         dashboardData['guest_count'],
         dashboardData['guests_total'],
+        dashboardData['guests'],
+        summaryData['guest_count'],
+        summaryData['guests'],
+        statsData['guest_count'],
+        guestsSummaryData['total_guests'],
       ]),
       confirmedGuests: _firstInt([
         dashboardData['confirmed_guests'],
         dashboardData['guests_confirmed'],
+        summaryData['confirmed_guests'],
+        summaryData['guests_confirmed'],
+        statsData['confirmed_guests'],
+        guestsSummaryData['confirmed_guests'],
       ]),
-      pendingGuests: _firstInt([dashboardData['pending_guests']]),
-      vendorsBooked: _firstInt([dashboardData['vendors_booked']]),
+      pendingGuests: _firstInt([
+        dashboardData['pending_guests'],
+        summaryData['pending_guests'],
+      ]),
+      vendorsBooked: _firstInt([
+        dashboardData['vendors_booked'],
+        statsData['vendors_booked'],
+      ]),
       completedTasks: _firstInt([
         dashboardData['completed_tasks'],
+        dashboardData['tasks_completed'],
         dashboardData['tasks_done'],
+        summaryData['completed_tasks'],
+        summaryData['tasks_completed'],
+        statsData['completed_tasks'],
       ]),
       totalTasks: _firstInt([
         dashboardData['total_tasks'],
         dashboardData['tasks_total'],
+        dashboardData['task_total'],
+        dashboardData['tasks_count'],
+        summaryData['total_tasks'],
+        summaryData['tasks_total'],
+        statsData['total_tasks'],
       ]),
-      daysUntilWedding: _firstDouble([dashboardData['days_until_wedding']]),
+      daysUntilWedding: _firstDouble([
+        dashboardData['days_until_wedding'],
+        summaryData['days_until_wedding'],
+      ]),
       rawSettings: settingsData.isNotEmpty ? settingsData : settings,
       rawCouple: coupleData,
       rawDashboard: dashboardData,
