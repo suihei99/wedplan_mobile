@@ -114,9 +114,15 @@ class VendorService {
         vendor['email'],
         data['email'],
       ]),
-      bookingDates: _readStringList(data, const [
+      bookingDates: _readBookingDateStrings(data, const [
         'booking_dates',
         'bookingDates',
+        'booked_dates',
+        'bookedDates',
+        'upcoming_booking_dates',
+        'calendar_dates',
+        'bookings',
+        'upcoming_bookings',
       ]),
       raw: json,
     );
@@ -147,18 +153,62 @@ Map<String, dynamic> _readMap(Map<String, dynamic> source, List<String> keys) {
   return <String, dynamic>{};
 }
 
-List<String> _readStringList(Map<String, dynamic> source, List<String> keys) {
+List<String> _readBookingDateStrings(
+  Map<String, dynamic> source,
+  List<String> keys,
+) {
   for (final key in keys) {
     final value = source[key];
     if (value is List) {
-      return value
-          .where((item) => item != null)
-          .map((item) => item.toString().trim())
-          .where((item) => item.isNotEmpty)
-          .toList();
+      final dates = <String>[];
+
+      for (final item in value) {
+        final date = _extractBookingDateText(item);
+        if (date.isNotEmpty) {
+          dates.add(date);
+        }
+      }
+
+      if (dates.isNotEmpty) return dates;
+    } else {
+      final date = _extractBookingDateText(value);
+      if (date.isNotEmpty) return [date];
     }
   }
   return const <String>[];
+}
+
+String _extractBookingDateText(dynamic value) {
+  if (value == null) return '';
+
+  if (value is DateTime) {
+    return value.toIso8601String().split('T').first;
+  }
+
+  if (value is Map) {
+    final source = value.map<String, dynamic>(
+      (key, item) => MapEntry(key.toString(), item),
+    );
+
+    final nestedBooking = _readMap(source, const ['booking']);
+    final date = _firstString([
+      source['booking_date'],
+      source['bookingDate'],
+      source['date'],
+      source['scheduled_at'],
+      source['scheduledAt'],
+      nestedBooking['booking_date'],
+      nestedBooking['bookingDate'],
+      nestedBooking['date'],
+      nestedBooking['scheduled_at'],
+      nestedBooking['scheduledAt'],
+    ]);
+    if (date.isNotEmpty) return date;
+  }
+
+  final text = value.toString().trim();
+  if (text.isEmpty || text == 'null') return '';
+  return text;
 }
 
 String _firstString(Iterable<dynamic> values, {String fallback = ''}) {
