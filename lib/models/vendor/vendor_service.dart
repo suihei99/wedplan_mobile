@@ -157,25 +157,23 @@ List<String> _readBookingDateStrings(
   Map<String, dynamic> source,
   List<String> keys,
 ) {
+  final dates = <String>{};
+
   for (final key in keys) {
     final value = source[key];
     if (value is List) {
-      final dates = <String>[];
-
       for (final item in value) {
-        final date = _extractBookingDateText(item);
-        if (date.isNotEmpty) {
-          dates.add(date);
-        }
+        _collectBookingDateText(item, dates);
       }
-
-      if (dates.isNotEmpty) return dates;
     } else {
-      final date = _extractBookingDateText(value);
-      if (date.isNotEmpty) return [date];
+      _collectBookingDateText(value, dates);
     }
   }
-  return const <String>[];
+
+  if (dates.isNotEmpty) return dates.toList();
+
+  _collectBookingDateText(source, dates);
+  return dates.toList();
 }
 
 String _extractBookingDateText(dynamic value) {
@@ -209,6 +207,43 @@ String _extractBookingDateText(dynamic value) {
   final text = value.toString().trim();
   if (text.isEmpty || text == 'null') return '';
   return text;
+}
+
+void _collectBookingDateText(dynamic value, Set<String> dates) {
+  final date = _extractBookingDateText(value);
+  if (date.isNotEmpty) {
+    dates.add(date);
+  }
+
+  if (value is Map) {
+    final source = value.map<String, dynamic>(
+      (key, item) => MapEntry(key.toString(), item),
+    );
+
+    for (final entry in source.entries) {
+      final key = entry.key.toLowerCase();
+      final item = entry.value;
+      if (key.contains('booking') ||
+          key.contains('date') ||
+          key.contains('scheduled')) {
+        final nested = _extractBookingDateText(item);
+        if (nested.isNotEmpty) {
+          dates.add(nested);
+        }
+      }
+
+      if (item is Map || item is List) {
+        _collectBookingDateText(item, dates);
+      }
+    }
+    return;
+  }
+
+  if (value is List) {
+    for (final item in value) {
+      _collectBookingDateText(item, dates);
+    }
+  }
 }
 
 String _firstString(Iterable<dynamic> values, {String fallback = ''}) {

@@ -10,8 +10,8 @@ class ExpensePaymentMethodOption {
 const List<ExpensePaymentMethodOption> expensePaymentMethodOptions =
     <ExpensePaymentMethodOption>[
       ExpensePaymentMethodOption(value: 'cash', label: 'Cash'),
-      ExpensePaymentMethodOption(value: 'credit_card', label: 'Credit Card'),
       ExpensePaymentMethodOption(value: 'debit_card', label: 'Debit Card'),
+      ExpensePaymentMethodOption(value: 'credit_card', label: 'Credit Card'),
       ExpensePaymentMethodOption(
         value: 'bank_transfer',
         label: 'Bank Transfer',
@@ -105,28 +105,36 @@ class ExpenseDraft {
 
 String normalizeExpensePaymentMethod(String value) {
   final normalized = value.trim().toLowerCase().replaceAll(
-    RegExp(r'[\s_-]+'),
-    '',
+    RegExp(r'[\s-]+'),
+    '_',
   );
 
-  if (normalized.isEmpty) return 'cash';
-  if (normalized.contains('cash')) return 'cash';
-  if (normalized.contains('creditcard') || normalized == 'card') {
-    return 'credit_card';
+  switch (normalized) {
+    case 'cash':
+      return 'cash';
+    case 'debit_card':
+      return 'debit_card';
+    case 'credit_card':
+      return 'credit_card';
+    case 'bank_transfer':
+      return 'bank_transfer';
+    default:
+      return normalized;
   }
-  if (normalized.contains('debitcard')) return 'debit_card';
-  if (normalized.contains('banktransfer') || normalized.contains('transfer')) {
-    return 'bank_transfer';
-  }
-  return 'cash';
 }
 
 String displayExpensePaymentMethod(String value) {
   final normalized = normalizeExpensePaymentMethod(value);
 
-  for (final option in expensePaymentMethodOptions) {
-    if (option.value == normalized) return option.label;
+  if (normalized.isEmpty) {
+    return 'Manual Entry';
   }
 
-  return value;
+  for (final option in expensePaymentMethodOptions) {
+    if (option.value == normalized) {
+      return option.label;
+    }
+  }
+
+  return normalized;
 }

@@ -34,7 +34,7 @@ class ExpenseRepository {
     Object id,
     ExpenseDraft draft,
   ) async {
-    final payload = await draft.toFormData(includePaymentMethod: false);
+    final payload = await draft.toFormData(includePaymentMethod: true);
     payload.fields.add(const MapEntry('_method', 'PUT'));
 
     final response = await _apiService.expenseCreateWithPath(

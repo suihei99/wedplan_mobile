@@ -403,8 +403,8 @@ class _BookingCalendarSectionState extends State<_BookingCalendarSection> {
         .map(_dateOnly)
         .toSet();
     _focusedMonth = _bookedDates.isNotEmpty
-        ? _dateOnly(_bookedDates.first)
-        : _dateOnly(DateTime.now());
+        ? DateTime(_bookedDates.first.year, _bookedDates.first.month, 1)
+        : DateTime(DateTime.now().year, DateTime.now().month, 1);
   }
 
   @override
@@ -566,12 +566,17 @@ class _BookingCalendarSectionState extends State<_BookingCalendarSection> {
     if (text.isEmpty) return null;
 
     final parsed = DateTime.tryParse(text);
-    if (parsed != null) return parsed;
+    if (parsed != null) return parsed.toLocal();
 
     final formats = <DateFormat>[
       DateFormat('yyyy-MM-dd'),
+      DateFormat('yyyy-MM-dd HH:mm:ss'),
+      DateFormat('yyyy-MM-dd HH:mm:ss.SSS'),
       DateFormat('dd/MM/yyyy'),
       DateFormat('d/M/yyyy'),
+      DateFormat('d MMM y'),
+      DateFormat('d MMMM y'),
+      DateFormat('MMM d, y'),
     ];
 
     for (final format in formats) {
@@ -580,6 +585,15 @@ class _BookingCalendarSectionState extends State<_BookingCalendarSection> {
       } catch (_) {
         continue;
       }
+    }
+
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(text);
+    if (match != null) {
+      return DateTime(
+        int.parse(match.group(1)!),
+        int.parse(match.group(2)!),
+        int.parse(match.group(3)!),
+      );
     }
 
     return null;

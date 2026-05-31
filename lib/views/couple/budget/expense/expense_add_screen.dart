@@ -29,10 +29,10 @@ class _ExpenseAddScreenState extends State<ExpenseAddScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _amountController;
   late final TextEditingController _dateController;
-  late final TextEditingController _paymentMethodController;
   late final TextEditingController _descriptionController;
 
   DateTime _selectedDate = DateTime.now();
+  String _paymentMethodValue = expensePaymentMethodOptions.first.value;
   String? _receiptPath;
   String? _receiptLabel;
 
@@ -45,8 +45,8 @@ class _ExpenseAddScreenState extends State<ExpenseAddScreen> {
     _nameController = TextEditingController();
     _amountController = TextEditingController();
     _dateController = TextEditingController(text: _formatDate(_selectedDate));
-    _paymentMethodController = TextEditingController(text: 'cash');
     _descriptionController = TextEditingController();
+    _paymentMethodValue = expensePaymentMethodOptions.first.value;
   }
 
   @override
@@ -55,7 +55,6 @@ class _ExpenseAddScreenState extends State<ExpenseAddScreen> {
     _nameController.dispose();
     _amountController.dispose();
     _dateController.dispose();
-    _paymentMethodController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -107,11 +106,17 @@ class _ExpenseAddScreenState extends State<ExpenseAddScreen> {
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         value: selectedCategoryId,
+                        isExpanded: true,
+                        isDense: true,
                         items: categories
                             .map(
                               (category) => DropdownMenuItem<String>(
                                 value: category.id.toString(),
-                                child: Text(category.categoryName),
+                                child: Text(
+                                  category.categoryName,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                               ),
                             )
                             .toList(),
@@ -190,54 +195,51 @@ class _ExpenseAddScreenState extends State<ExpenseAddScreen> {
                             },
                           );
 
-                          final methodField = DropdownButtonFormField<String>(
-                            value: normalizeExpensePaymentMethod(
-                              _paymentMethodController.text,
-                            ),
-                            items: expensePaymentMethodOptions
-                                .map(
-                                  (option) => DropdownMenuItem<String>(
-                                    value: option.value,
-                                    child: Text(option.label),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(
-                                  () => _paymentMethodController.text = value,
-                                );
-                              }
-                            },
-                            decoration: _fieldDecoration(
-                              hintText: 'Payment method',
-                              icon: Icons.credit_card_rounded,
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Payment method is required';
-                              }
-                              return null;
-                            },
-                          );
-
                           if (compact) {
-                            return Column(
-                              children: [
-                                dateField,
-                                const SizedBox(height: 16),
-                                methodField,
-                              ],
-                            );
+                            return dateField;
                           }
 
-                          return Row(
-                            children: [
-                              Expanded(child: dateField),
-                              const SizedBox(width: 12),
-                              Expanded(child: methodField),
-                            ],
-                          );
+                          return dateField;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _FieldLabel(text: 'Payment method'),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value:
+                            expensePaymentMethodOptions.any(
+                              (option) => option.value == _paymentMethodValue,
+                            )
+                            ? _paymentMethodValue
+                            : expensePaymentMethodOptions.first.value,
+                        isExpanded: true,
+                        isDense: true,
+                        items: expensePaymentMethodOptions
+                            .map(
+                              (option) => DropdownMenuItem<String>(
+                                value: option.value,
+                                child: Text(
+                                  option.label,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _paymentMethodValue = value);
+                          }
+                        },
+                        decoration: _fieldDecoration(
+                          hintText: 'Select payment method',
+                          icon: Icons.credit_card_rounded,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Payment method is required';
+                          }
+                          return null;
                         },
                       ),
                       const SizedBox(height: 16),
@@ -343,7 +345,7 @@ class _ExpenseAddScreenState extends State<ExpenseAddScreen> {
         amount: double.parse(_amountController.text.trim()),
         datePaid: _selectedDate,
         description: _descriptionController.text.trim(),
-        paymentMethod: _paymentMethodController.text.trim(),
+        paymentMethod: _paymentMethodValue,
         receiptPath: _receiptPath,
       );
 
