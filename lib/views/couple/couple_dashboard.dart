@@ -48,6 +48,7 @@ class _CoupleDashboardScreenState extends State<CoupleDashboardScreen> {
               onTapGuests: () => _handleNavTap(3),
               onTapTasks: () => _openTaskScreen(context),
               onTapVendors: () => _handleNavTap(2),
+              onTapTaskList: () => _openTaskScreen(context),
             ),
             BudgetScreen(embedded: true),
             const VendorListScreen(embedded: true),
@@ -183,10 +184,13 @@ class _CoupleDashboardScreenState extends State<CoupleDashboardScreen> {
     _handleNavTap(1);
   }
 
-  void _openTaskScreen(BuildContext context) {
-    Navigator.of(
+  Future<void> _openTaskScreen(BuildContext context) async {
+    await Navigator.of(
       context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const TaskScreen()));
+    ).push<void>(MaterialPageRoute<void>(builder: (_) => const TaskScreen()));
+
+    if (!mounted) return;
+    await _viewModel.load(forceRefresh: true);
   }
 
   void _handleNavTap(int index) {
@@ -296,6 +300,7 @@ class _DashboardHome extends StatelessWidget {
     required this.onTapGuests,
     required this.onTapTasks,
     required this.onTapVendors,
+    required this.onTapTaskList,
   });
 
   final CoupleDashboardViewModel vm;
@@ -303,6 +308,7 @@ class _DashboardHome extends StatelessWidget {
   final VoidCallback onTapGuests;
   final VoidCallback onTapTasks;
   final VoidCallback onTapVendors;
+  final VoidCallback onTapTaskList;
 
   @override
   Widget build(BuildContext context) {
@@ -323,6 +329,7 @@ class _DashboardHome extends StatelessWidget {
               onTapGuests: onTapGuests,
               onTapTasks: onTapTasks,
               onTapVendors: onTapVendors,
+              onTapTaskList: onTapTaskList,
             ),
             if (vm.error != null) ...[
               const SizedBox(height: 12),

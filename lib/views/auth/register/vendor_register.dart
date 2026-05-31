@@ -9,6 +9,7 @@ import 'package:wedplan_mobile/views/auth/widgets/auth_fields.dart';
 import 'package:wedplan_mobile/views/auth/widgets/auth_navigation.dart';
 import 'package:wedplan_mobile/views/auth/widgets/auth_page_shell.dart';
 import 'package:wedplan_mobile/views/shared/welcome_theme.dart';
+import 'package:wedplan_mobile/views/vendor/service/widgets/vendor_service_widgets.dart';
 
 class VendorRegisterScreen extends StatefulWidget {
   const VendorRegisterScreen({super.key});
@@ -21,13 +22,13 @@ class _VendorRegisterScreenState extends State<VendorRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _businessNameController = TextEditingController();
-  final _businessTypeController = TextEditingController();
   final _contactNumberController = TextEditingController();
   final _addressController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
   PlatformFile? _document;
+  String? _businessTypeValue;
   bool _passwordVisible = false;
   bool _confirmPasswordVisible = false;
 
@@ -35,7 +36,6 @@ class _VendorRegisterScreenState extends State<VendorRegisterScreen> {
   void dispose() {
     _emailController.dispose();
     _businessNameController.dispose();
-    _businessTypeController.dispose();
     _contactNumberController.dispose();
     _addressController.dispose();
     _passwordController.dispose();
@@ -94,10 +94,53 @@ class _VendorRegisterScreenState extends State<VendorRegisterScreen> {
                   const SizedBox(height: 14),
                   const AuthFieldLabel(label: 'Business type'),
                   const SizedBox(height: 8),
-                  AuthTextField(
-                    controller: _businessTypeController,
-                    hintText: 'Example: Photography, venue, catering',
-                    textInputAction: TextInputAction.next,
+                  DropdownButtonFormField<String>(
+                    value: _businessTypeValue,
+                    items: vendorServiceFormOptions
+                        .map(
+                          (option) => DropdownMenuItem<String>(
+                            value: option.value,
+                            child: Text(option.label),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _businessTypeValue = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Select business type',
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: BorderSide(
+                          color: welcomePrimaryDeepColor.withValues(
+                            alpha: 0.16,
+                          ),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: BorderSide(
+                          color: welcomePrimaryDeepColor.withValues(
+                            alpha: 0.16,
+                          ),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: const BorderSide(
+                          color: welcomePrimaryDeepColor,
+                          width: 1.2,
+                        ),
+                      ),
+                    ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Business type is required';
@@ -275,7 +318,7 @@ class _VendorRegisterScreenState extends State<VendorRegisterScreen> {
       'password': _passwordController.text,
       'password_confirmation': _confirmPasswordController.text,
       'business_name': _businessNameController.text.trim(),
-      'business_type': _businessTypeController.text.trim(),
+      'business_type': _businessTypeValue,
       'contact_number': _contactNumberController.text.trim(),
       'address': _addressController.text.trim(),
       'business_documents': MultipartFile.fromBytes(

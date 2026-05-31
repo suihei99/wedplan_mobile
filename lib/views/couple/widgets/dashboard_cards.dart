@@ -15,7 +15,7 @@ class DashboardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dashboard = vm.dashboard;
-    final completion = dashboard?.completionPercent ?? 0;
+    final completion = _taskProgressPercent(dashboard);
     final session = AppSessionCache.instance;
     final coupleName = dashboard?.coupleDisplayName.trim().isNotEmpty == true
         ? dashboard!.coupleDisplayName
@@ -251,6 +251,7 @@ class DashboardStatGrid extends StatelessWidget {
     required this.onTapGuests,
     required this.onTapTasks,
     required this.onTapVendors,
+    required this.onTapTaskList,
   });
 
   final CoupleDashboardViewModel vm;
@@ -258,6 +259,7 @@ class DashboardStatGrid extends StatelessWidget {
   final VoidCallback onTapGuests;
   final VoidCallback onTapTasks;
   final VoidCallback onTapVendors;
+  final VoidCallback onTapTaskList;
 
   @override
   Widget build(BuildContext context) {
@@ -308,7 +310,7 @@ class DashboardStatGrid extends StatelessWidget {
                     ? '${dashboard.completedTasks}/${dashboard.totalTasks}'
                     : '--',
                 subtitle: dashboard != null
-                    ? '${dashboard.progressPercentage.toStringAsFixed(0)}% complete'
+                    ? '${_taskProgressPercent(dashboard).toStringAsFixed(0)}% complete'
                     : '',
                 icon: Icons.checklist_rounded,
                 accent: const Color(0xFFE04F6D),
@@ -334,9 +336,12 @@ class DashboardStatGrid extends StatelessWidget {
         ),
         if (dashboard != null) ...[
           const SizedBox(height: 12),
-          _JourneyStrip(progress: dashboard.completionPercent / 100),
+          _JourneyStrip(progress: _taskProgressRatio(dashboard)),
           const SizedBox(height: 12),
-          _UpcomingTaskCard(tasks: dashboard.upcomingTasks),
+          _UpcomingTaskCard(
+            tasks: dashboard.upcomingTasks,
+            onTap: onTapTaskList,
+          ),
         ],
       ],
     );
@@ -541,9 +546,10 @@ class _JourneyStrip extends StatelessWidget {
 }
 
 class _UpcomingTaskCard extends StatelessWidget {
-  const _UpcomingTaskCard({required this.tasks});
+  const _UpcomingTaskCard({required this.tasks, required this.onTap});
 
   final List<Map<String, dynamic>> tasks;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -558,7 +564,7 @@ class _UpcomingTaskCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -633,6 +639,15 @@ String _string(dynamic value) {
 }
 
 String _money(double value) => value.toStringAsFixed(2);
+
+double _taskProgressPercent(CoupleDashboard? dashboard) {
+  return _taskProgressRatio(dashboard) * 100;
+}
+
+double _taskProgressRatio(CoupleDashboard? dashboard) {
+  if (dashboard == null || dashboard.totalTasks <= 0) return 0;
+  return (dashboard.completedTasks / dashboard.totalTasks).clamp(0.0, 1.0);
+}
 
 String _weddingMetaLabel(CoupleDashboard? dashboard) {
   if (dashboard == null) return '';
