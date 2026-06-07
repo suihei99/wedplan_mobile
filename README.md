@@ -1,129 +1,95 @@
+<!--
+	Polished release README for WedPlan Mobile App v1.0.0
+	- Keep this file high-level; the USER_MANUAL.md contains user-facing instructions.
+-->
+
 # WedPlan Mobile App
 
-**Version 1.0.0**
+![Release](https://img.shields.io/badge/release-1.0.0-blue) ![Platform](https://img.shields.io/badge/platform-mobile%20%7C%20web-lightgrey)
 
-WedPlan Mobile App is a Flutter application for wedding planning and vendor coordination. It provides dedicated experiences for couples, vendors, and guests so each user can manage the parts of the event that matter to them from a single mobile app.
+Forever memories, beautifully planned — WedPlan helps couples, vendors, and guests manage wedding details in one mobile-first application.
 
-## Overview
+## Release Highlights (v1.0.0)
 
-WedPlan is designed to help users plan and manage a wedding with less friction and better visibility. The app supports:
+- Clean, role-based experiences for Couples, Vendors, and Guests
+- Couple dashboard: budget, tasks, guests, and vendor browsing
+- Vendor dashboard: service management and booking workflow
+- Guest invitation lookup and QR-based RSVP/check-in
+- Push notifications (Firebase) and secure session persistence
 
-- Couple planning tools for budget, guests, tasks, vendors, and account settings
-- Vendor tools for services, bookings, notifications, and business profile management
-- Guest invitation and check-in flows using invitation code or QR input
-- Push notifications and API-backed onboarding, profiles, and planning data
+## Quick Links
 
-## Key Features
+- User guide: [USER_MANUAL.md](USER_MANUAL.md)
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
 
-### For Couples
+## Screenshots
 
-- Wedding dashboard with planning overview
-- Budget tracking and category monitoring
-- Expense logging and updates
-- Task management and task completion
-- Guest list management, RSVPs, and check-ins
-- Vendor browsing and booking visibility
-- Notifications and profile settings
+Add screenshots here to show the app UI for Couple and Vendor dashboards.
 
-### For Vendors
+- Screenshot: Dashboard (couple)
+- Screenshot: Vendor bookings
 
-- Vendor dashboard with booking activity overview
-- Service management
-- Booking management
-- Notification inbox
-- Business profile and account details
+## Install & Run (Development)
 
-### For Guests
-
-- Invitation lookup using code or QR input
-- RSVP and check-in flow for invited guests
-
-## Technology Stack
-
-- Flutter
-- Provider for state management
-- Dio for networking
-- Firebase Messaging for push notifications
-- Shared Preferences and Flutter Secure Storage for session handling
-- Google Fonts and Material 3 UI
-
-## Requirements
-
-- Flutter SDK 3.11 or newer
-- Dart 3.11 or newer
-- Android Studio, VS Code, or another Flutter-capable IDE
-- A configured backend API
-
-## Setup
-
-1. Install Flutter dependencies:
+Clone the repo and fetch dependencies:
 
 ```bash
+git clone <repo-url> && cd wedplan_mobile
 flutter pub get
 ```
 
-2. Run the app:
+Run on a device or emulator:
 
 ```bash
 flutter run
 ```
 
-3. Optional: point the app to a different API base URL by passing `API_BASE_URL` at build or run time.
+Point the app to a custom API server (optional):
 
 ```bash
 flutter run --dart-define=API_BASE_URL=https://your-api.example.com/api/v1
 ```
 
-The default API endpoint is `https://wedplan.projectse.io/api/v1`.
+Default API: `https://wedplan.projectse.io/api/v1`
 
 ## Build
 
-### Android
-
 ```bash
-flutter build apk
+flutter build apk    # Android
+flutter build ios    # iOS
+flutter build web    # Web
+flutter build windows # Windows
 ```
 
-### iOS
+## Project Structure (high level)
+
+- `lib/views/` — UI screens
+- `lib/viewmodels/` — State & UI logic (Provider)
+- `lib/repositories/` — API access
+- `lib/services/` — auth, notifications, helpers
+- `lib/models/` — typed data models
+- `assets/` — images and icons
+
+## Configuration & Notes
+
+- Firebase: follow platform guides to configure `google-services.json` (Android) and `GoogleService-Info.plist` (iOS) for push notifications.
+- API: the app expects a JSON REST API compatible with the app's repository classes.
+- Secure storage: sessions use Flutter Secure Storage for tokens.
+
+## Contributing & Local Development
+
+- Follow standard Flutter contribution steps: create a branch, open a PR, and include screenshots for UI changes.
+- Run formatting and tests before opening a PR:
 
 ```bash
-flutter build ios
+flutter format .
+flutter test
 ```
 
-### Web
+## Changelog & Release Notes
 
-```bash
-flutter build web
-```
+See [CHANGELOG.md](CHANGELOG.md) for release notes and version history.
 
-### Windows
+## Support
 
-```bash
-flutter build windows
-```
-
-## App Entry Flow
-
-1. The app opens on a branded splash screen.
-2. The app checks whether a stored session exists.
-3. Logged-in users are sent to the correct dashboard based on role.
-4. New users are taken to the welcome screen.
-
-## Project Structure
-
-- `lib/views/` - UI screens and page layouts
-- `lib/viewmodels/` - state management and UI logic
-- `lib/repositories/` - API and data access
-- `lib/models/` - data models
-- `lib/services/` - authentication and notification services
-- `assets/` - images, icons, and static media
-
-## Notes
-
-- Push notifications require Firebase configuration in the Android and iOS projects.
-- Session persistence uses secure local storage so returning users can be routed automatically.
-- The app is optimized for mobile-first use, but also supports desktop and web targets generated by Flutter.
-
-## User Manual
-
-See [User Manual](USER_MANUAL.md) for a step-by-step guide to using WedPlan Mobile App.
+For issues or questions, contact the project maintainer or open an issue in the repository.
